@@ -1,7 +1,6 @@
 import torch
-from loss import ERMLoss, GDROLoss, DynamicLoss, UpweightLoss
+from loss import ERMLoss, GDROLoss, UpweightLoss
 import models
-from utils import data_utils, image_data_utils
 from train_eval import run_trials
 import pandas as pd
 from datetime import datetime
@@ -14,7 +13,6 @@ parser.add_argument('--test_name', default='test')
 parser.add_argument('--cnn', action='store_true')
 parser.add_argument('--e2e', action='store_true')
 parser.add_argument('--verbose', action='store_true')
-parser.add_argument('--colab', action='store_true')
 
 args = parser.parse_args()
 
@@ -62,16 +60,6 @@ elif args.e2e:
     train_dataloader = data_utils.create_dataloader(train, batch_size, is_dataframe=False)
     val_dataloader = data_utils.create_dataloader(val, len(val), is_dataframe=False)
     test_dataloader = data_utils.create_dataloader(test, len(test), is_dataframe=False)
-else:
-    df = data_utils.preprocess_data(
-        *data_utils.load_lidc(
-            data_root='data/',
-            feature_path=feature_path,
-            subclass_path=subclass_path
-        ),
-        subclass_column=subclass_column
-    )
-    train_dataloader, val_dataloader, test_dataloader = data_utils.train_val_test_dataloaders(df, split_path="data/train_test_splits/LIDC_data_split.csv", batch_size=batch_size)
 
 num_subclasses = len(test_dataloader.dataset.subclasses.unique())
 subtypes = ["Overall"]
@@ -96,10 +84,11 @@ upweight_args = [None, torch.nn.CrossEntropyLoss(), num_subclasses]
 
 optimizer_args = {'lr': lr, 'weight_decay': wd}
 
-results = {"Accuracies": {}, "q": {}, "g": {}, "ROC": {}}
+results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
-for loss_class, loss_args in zip([erm_class, gdro_class, dynamic_class, upweight_class], [erm_args, gdro_args, dynamic_args, upweight_args]):
-# for loss_class, loss_args in zip([dynamic_class], [dynamic_args]):
+for loss_class, loss_args in zip([erm_class, gdro_class, dynamic_class, upweight_class],
+                                 [erm_args, gdro_args, dynamic_args, upweight_args]):
+    # for loss_class, loss_args in zip([dynamic_class], [dynamic_args]):
     fn_name = loss_class.__name__
 
     if verbose:
@@ -117,14 +106,14 @@ for loss_class, loss_args in zip([erm_class, gdro_class, dynamic_class, upweight
         optimizer_class=optimizer_class,
         optimizer_args=optimizer_args,
         device=device,
-        scheduler=None,
+        scheduler_class=None,
+        scheduler_args=None,
         verbose=verbose,
         record=True,
         num_subclasses=num_subclasses
     )
     results["Accuracies"][fn_name] = accuracies
     results["q"][fn_name] = q_data
-    results["g"][fn_name] = g_data
     results["ROC"]["labels"] = roc_data[1].tolist()
     results["ROC"][fn_name] = roc_data[0].tolist()
 
@@ -142,28 +131,13 @@ q_df = pd.DataFrame(
         names=["trial", "epoch", "subtype"]
     )
 )
-g_df = pd.DataFrame(
-    results["g"],
-    index=pd.MultiIndex.from_product(
-        [range(trials), range(epochs), ["ERM Weight", "GDRO Weight"]],
-        names=["trial", "epoch", "loss_fn"]
-    )
-)
 roc_df = pd.DataFrame(results["ROC"])
 
 now = datetime.now()
 
-results_dir = results_root_dir + f'{test_name}_{now.strftime("%Y%m%d_%H%M%S")}/'
+results_dir = results_root_dir + f'{test_name}/'
 os.mkdir(results_dir)
 
 accuracies_df.to_csv(results_dir + f'accuracies.csv')
 q_df.to_csv(results_dir + f'q.csv')
-g_df.to_csv(results_dir + f'g.csv')
 roc_df.to_csv(results_dir + f'roc.csv', index=False)
-
-if args.colab:
-    from google.colab import files
-    files.download(results_dir + f'accuracies.csv')
-    files.download(results_dir + f'q.csv')
-    files.download(results_dir + f'g.csv')
-    files.download(results_dir + f'roc.csv')

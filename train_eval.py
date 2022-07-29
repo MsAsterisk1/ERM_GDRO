@@ -158,6 +158,8 @@ def run_trials(num_trials,
     :param record: Whether to record the results, this should almost always be True
     :return: A list containing the results for each epoch for each trial, again arranged 1-dimensionally
     """
+    if scheduler_args is None:
+        scheduler_args = {}
     if record:
         accuracies = []
         roc_data = [None, None]

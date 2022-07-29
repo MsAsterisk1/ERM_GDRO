@@ -1,4 +1,4 @@
-# LIDC_GDRO
+# ERM_GDRO
 Fine Control of the Trade-off Between ERM and gDRO
 
 Project Description:
