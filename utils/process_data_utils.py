@@ -44,12 +44,12 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
 
         # features, labels, subclasses
         tokens = tokenizer(list(sub_df['comment_text'].values),padding='max_length', max_length = 300, 
-                       truncation=True, return_tensors="pt").to(device)
+                       truncation=True, return_tensors="pt")
 
-        labels = torch.from_numpy(sub_df['toxicity'].values).to(device)
-        subclasses = torch.from_numpy(sub_df[CC_subgroup_cols].values).to(device)
+        labels = torch.from_numpy(sub_df['toxicity'].values)
+        subclasses = torch.from_numpy(sub_df[CC_subgroup_cols].values)
 
-        datasets.append(SubclassedDataset(tokens['input_ids'], tokens['attention_mask'], labels, subclasses))
+        datasets.append(SubclassedDataset(tokens['input_ids'], tokens['attention_mask'], labels, subclasses, device=device))
 
     return datasets
 
