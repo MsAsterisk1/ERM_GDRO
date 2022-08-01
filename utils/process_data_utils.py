@@ -46,11 +46,10 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
         tokens = tokenizer(list(sub_df['comment_text'].values),padding='max_length', max_length = 300, 
                        truncation=True, return_tensors="pt").to(device)
 
-        features = tuple(zip(tokens['input_ids'], tokens['attention_mask']))
         labels = sub_df['toxicity'].values
         subclasses = sub_df[CC_subgroup_cols].values
 
-        datasets.append(SubclassedDataset(features, labels, subclasses))
+        datasets.append(SubclassedDataset(tokens['input_ids'], tokens['attention_mask'], labels, subclasses))
 
     return datasets
 
