@@ -40,7 +40,7 @@ class SubclassedDataset(Dataset):
 
 
         if self.device:
-            return (*feats, self.labels[idx].to(self.device), self.subclasses[idx].to(self.device))
+            return (*feats, self.labels[idx].to(device=self.device, dtype=torch.long), self.subclasses[idx].to(self.device))
         else:
             return (*feats, self.labels[idx], self.subclasses[idx])
 
