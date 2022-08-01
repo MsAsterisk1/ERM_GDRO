@@ -48,7 +48,7 @@ class GDROLoss:
             y = minibatch[-2]
             c = minibatch[-1]
 
-        batch_size = X.shape[0]
+        batch_size = y.shape[0]
         device = X.device
 
         if len(self.q) == 0:
