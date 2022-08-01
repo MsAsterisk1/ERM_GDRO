@@ -13,8 +13,11 @@ class ERMLoss:
 
     def __call__(self, minibatch):
         # minibatch contains one batch of non-subtyped data
-
-        X, y, _ = minibatch
+        if len(minibatch) == 3:
+            X, y, _ = minibatch
+        else:
+            X = minibatch[:-2]
+            y = minibatch[-2]
 
         loss = self.loss_fn(self.model(X), y)
 
@@ -37,8 +40,13 @@ class GDROLoss:
         self.normalize_loss = normalize_loss
 
     def __call__(self, minibatch):
-
-        X, y, c = minibatch
+        
+        if len(minibatch) == 3:
+            X,y,c = minibatch
+        else:
+            X = minibatch[:-2]
+            y = minibatch[-2]
+            c = minibatch[-1]
 
         batch_size = X.shape[0]
         device = X.device
@@ -60,7 +68,7 @@ class GDROLoss:
                 subclass_idx = c[:,subclass] == 1
             else:
                 subclass_idx = c == subclass
-                
+
             subclass_counts[subclass] = torch.sum(subclass_idx)
 
             # only compute loss if there are actually samples in that class
