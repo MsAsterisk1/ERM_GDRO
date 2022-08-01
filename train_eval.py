@@ -35,7 +35,7 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False):
         print("Average training loss:", avg_loss)
 
 
-def evaluate(dataloader, model, num_subclasses, verbose=False):
+def evaluate(dataloader, model, num_subclasses, vector_subclass=False, verbose=False):
     """
     Evaluate the model's accuracy and subclass sensitivities
     :param dataloader: The dataloader for the validation/testing data
@@ -56,14 +56,22 @@ def evaluate(dataloader, model, num_subclasses, verbose=False):
         pred = model(X)
 
         for subclass in range(num_subclasses):
-            subclass_idx = c == subclass
+            if vector_subclass:
+                subclass_idx = c[:,subclass] == 1
+            else:
+                subclass_idx = c == subclass
+
             num_samples[subclass] += torch.sum(subclass_idx)
             subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(
                 torch.float).sum().item()
 
     subgroup_accuracy = subgroup_correct / num_samples
 
-    accuracy = sum(subgroup_correct) / sum(num_samples)
+    
+    # for calculating overall accuracy, we simply recalculate
+    # as the subclasses may not be a complete partition of data
+    accuracy = (pred.argmax(1) == y).type(
+                torch.float).sum().item()/ len(y)
 
     if verbose:
         print("Accuracy:", accuracy, "\nAccuracy over subgroups:", subgroup_accuracy, "\nWorst Group Accuracy:",
@@ -79,6 +87,7 @@ def train_epochs(epochs,
                  loss_fn,
                  optimizer,
                  scheduler=None,
+                 vector_subclass=False,
                  verbose=False,
                  record=False,
                  num_subclasses=1):
@@ -111,7 +120,7 @@ def train_epochs(epochs,
             scheduler.step(evaluate(test_dataloader, model, num_subclasses=num_subclasses)[0])
 
         if record:
-            epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses)
+            epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass)
             accuracies.extend(epoch_accuracies)
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(loss_fn.q.tolist())
