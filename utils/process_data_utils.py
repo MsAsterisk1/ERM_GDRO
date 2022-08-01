@@ -52,6 +52,8 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
 
         datasets.append(SubclassedDataset(features, labels, subclasses))
 
+    return datasets
+
 def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
 
     if datasets is None:

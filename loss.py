@@ -27,11 +27,12 @@ class GDROLoss:
     See https://arxiv.org/abs/1911.08731 for details on the algorithm
     """
 
-    def __init__(self, model, loss_fn, eta, num_subclasses, normalize_loss=False):
+    def __init__(self, model, loss_fn, eta, num_subclasses, vector_subclass=False, normalize_loss=False):
         self.model = model
         self.loss_fn = loss_fn
         self.q = torch.tensor([])
         self.eta = eta
+        self.vector_subclass=vector_subclass
         self.num_subclasses = num_subclasses
         self.normalize_loss = normalize_loss
 
@@ -55,7 +56,11 @@ class GDROLoss:
         # computes loss
         # get relative frequency of samples in each subclass
         for subclass in range(self.num_subclasses):
-            subclass_idx = c == subclass
+            if self.vector_subclass:
+                subclass_idx = c[:,subclass] == 1
+            else:
+                subclass_idx = c == subclass
+                
             subclass_counts[subclass] = torch.sum(subclass_idx)
 
             # only compute loss if there are actually samples in that class
