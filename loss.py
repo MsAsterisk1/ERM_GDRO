@@ -49,7 +49,7 @@ class GDROLoss:
             c = minibatch[-1]
 
         batch_size = y.shape[0]
-        device = X.device
+        device = y.device
 
         if len(self.q) == 0:
             self.q = torch.ones(self.num_subclasses).to(device)
