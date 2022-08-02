@@ -30,10 +30,10 @@ if args.dataset == 'waterbirds':
 
     model_class = models.TransferModel18
     model_args = {'device': device}
-elif args.dataset == 'mnist':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_subclassed_MNIST_dataloaders(device=device)
+elif args.dataset == 'coloredmnist':
+    train_dataloader, val_dataloader, test_dataloader = utils.get_colored_MNIST_dataloaders(batch_size=1024, device=device, seed=42)
     model_class = models.NeuralNetwork
-    model_args = {'layers': [28*28, 256, 64, 10]}
+    model_args = {'layers': [28*28*3, 256, 64, 10]}
 elif args.dataset == 'civilcomments':
     train_dataloader, val_dataloader, test_dataloader = utils.get_CivilComments_DataLoaders(device=device)
     model_class = models.BertClassifier
@@ -43,8 +43,7 @@ elif args.dataset == 'civilcomments':
 optimizer_class = torch.optim.Adam
 
 trials = 1
-epochs = 100
-batch_size = 128
+epochs = 10
 split_path = "train_test_splits/LIDC_data_split.csv"
 subclass_path = 'subclass_labels/subclasses.csv'
 feature_path = 'LIDC_20130817_AllFeatures2D_MaxSlicePerNodule_inLineRatings.csv'
@@ -70,15 +69,15 @@ optimizer_args = {'lr': lr, 'weight_decay': wd}
 
 results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
-for loss_class, loss_args in zip([erm_class],
-                                 [erm_args]):
+for loss_class, loss_args in zip([erm_class, gdro_class],
+                                 [erm_args,  gdro_args]):
     # for loss_class, loss_args in zip([dynamic_class], [dynamic_args]):
     fn_name = loss_class.__name__
 
     if verbose:
         print(f"Running trials: {fn_name}")
 
-    accuracies, q_data, g_data, roc_data = run_trials(
+    accuracies, q_data, roc_data = run_trials(
         num_trials=trials,
         epochs=epochs,
         train_dataloader=train_dataloader,
@@ -104,14 +103,14 @@ for loss_class, loss_args in zip([erm_class],
 accuracies_df = pd.DataFrame(
     results["Accuracies"],
     index=pd.MultiIndex.from_product(
-        [range(trials), range(epochs), subtypes],
+        [range(trials), range(epochs + 1), subtypes],
         names=["trial", "epoch", "subtype"]
     )
 )
 q_df = pd.DataFrame(
     results["q"],
     index=pd.MultiIndex.from_product(
-        [range(trials), range(epochs), subtypes[1:]],
+        [range(trials), range(epochs + 1), subtypes[1:]],
         names=["trial", "epoch", "subtype"]
     )
 )

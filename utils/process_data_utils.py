@@ -1,3 +1,5 @@
+import random
+
 import torch
 import pandas as pd
 import numpy as np
@@ -76,18 +78,34 @@ def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
     return train, cv, test
 
 
-def get_subclassed_MNIST_datasets(device='cpu'):
-    ds = np.DataSource(None)
+def color_MNIST(images, labels, flip_prob=0.25, seed=None):
+    dtype = images.dtype
+    # number of images, number of pixels in image
+    n, size = images.shape
+    images = np.reshape(images, (n, size, 1))
 
-    # train_images = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz'), dtype='>u1')[16:]
-    # train_labels = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz'), dtype='>u1')[8:]
-    # test_images = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz'), dtype='>u1')[16:]
-    # test_labels = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz'), dtype='>u1')[8:]
+    rng = np.random.default_rng(seed)
+    flip_array = rng.random(n) < flip_prob
 
+    labels = np.logical_xor(labels, flip_array)
+
+    images = np.concatenate(
+        [
+            (labels * images.T).T,
+            ((1-labels) * images.T).T,
+            np.zeros((n, size, 1), dtype=dtype)
+        ],
+        axis=2
+    )
+
+    return images
+
+
+def get_colored_MNIST_datasets(device='cpu', seed=None):
     train_images = np.fromfile('data/mnist/train-images.idx3-ubyte', dtype='>u1')[16:]
-    train_labels = np.fromfile(ds.open('data/mnist/train-labels.idx1-ubyte'), dtype='>u1')[8:]
-    test_images = np.fromfile(ds.open('data/mnist/t10k-images.idx3-ubyte'), dtype='>u1')[16:]
-    test_labels = np.fromfile(ds.open('data/mnist/t10k-labels.idx1-ubyte'), dtype='>u1')[8:]
+    train_labels = np.fromfile('data/mnist/train-labels.idx1-ubyte', dtype='>u1')[8:]
+    test_images = np.fromfile('data/mnist/t10k-images.idx3-ubyte', dtype='>u1')[16:]
+    test_labels = np.fromfile('data/mnist/t10k-labels.idx1-ubyte', dtype='>u1')[8:]
 
     train_images = np.reshape(train_images, (-1, 28 * 28))
     test_images = np.reshape(test_images, (-1, 28 * 28))
@@ -96,6 +114,9 @@ def get_subclassed_MNIST_datasets(device='cpu'):
     train_labels = (train_labels >= 5)
     test_subclass_labels = test_labels.copy()
     test_labels = (test_labels >= 5)
+
+    train_images = color_MNIST(train_images, train_labels, flip_prob=0.1, seed=seed)
+    test_images = color_MNIST(test_images, test_labels, flip_prob=0.9, seed=seed)
 
     train_dataset = SubclassedDataset(
         torch.from_numpy(train_images).to(device=device, dtype=torch.float),
@@ -111,12 +132,24 @@ def get_subclassed_MNIST_datasets(device='cpu'):
     return train_dataset, test_dataset
 
 
-def get_subclassed_MNIST_dataloaders(device='cpu'):
-    train_dataset, test_dataset = get_subclassed_MNIST_datasets(device=device)
-    print(len(train_dataset))
-    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [50000, 10000], generator=torch.Generator().manual_seed(42))
-    train_dataloader = InfiniteDataLoader(train_dataset, batch_size=256)
-    val_dataloader = InfiniteDataLoader(val_dataset, batch_size=256)
-    test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=len(test_dataset))
+def get_colored_MNIST_dataloaders(batch_size, device='cpu', seed=None):
+    train_dataset, test_dataset = get_colored_MNIST_datasets(device=device)
+    train_dataset, val_dataset = torch.utils.data.random_split(
+        train_dataset, [50000, 10000],
+        generator=torch.Generator().manual_seed(seed)
+    )
+
+    # randomly remove 95% of 8s
+
+    #TODO use Subset instead of sample weights because I think this may not work for the test dataloader
+
+    rng = np.random.default_rng(42)
+    train_weights = (train_dataset.subclasses != 8) & (rng.random(len(train_dataset)) > 0.95)
+    val_weights = (val_dataset.subclasses != 8) & (rng.random(len(val_dataset)) > 0.95)
+    test_weights = (test_dataset.subclasses != 8) & (rng.random(len(test_dataset)) > 0.95)
+
+    train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size, weights=train_weights)
+    val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size, weights=val_weights)
+    test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=len(test_dataset), weights=test_weights)
 
     return train_dataloader, val_dataloader, test_dataloader

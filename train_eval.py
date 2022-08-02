@@ -159,6 +159,9 @@ def train_epochs(epochs,
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
+        if q_data:
+            print(len(q_data))
+
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose)
         if scheduler:
             scheduler.step(evaluate(test_dataloader, model, num_subclasses=num_subclasses)[0])
@@ -253,14 +256,17 @@ def run_trials(num_trials,
                                      )
 
         if record:
-            trial_accuracies, trial_q_data, trial_g_data = trial_results
+            trial_accuracies, trial_q_data = trial_results
             accuracies.extend(trial_accuracies)
 
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(trial_q_data)
 
             with torch.no_grad():
-                preds = model(test_dataloader.dataset.features)
+                X = test_dataloader.dataset.features
+                if len(X) == 1:
+                    X = X[0]
+                preds = model(X)
                 probabilities = torch.nn.functional.softmax(preds, dim=1)[:, 1]
                 if roc_data[0] is None:
                     roc_data[0] = probabilities
