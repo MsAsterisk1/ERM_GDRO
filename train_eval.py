@@ -52,7 +52,7 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replaceme
 
         if replacement: #if dataloader samples with replacement, can only use dataset
             X = dataloader.dataset.features
-            
+
             y = dataloader.dataset.labels
             c = dataloader.dataset.subclasses
 
@@ -81,12 +81,8 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replaceme
 
             for i in range(steps_per_epoch):
                 minibatch = next(dataloader)
-                if len(minibatch) == 3:
-                    X,y,c = minibatch
-                else:
-                    X = minibatch[:-2]
-                    y = minibatch[-2]
-                    c = minibatch[-1]
+                X,y,c = minibatch
+
                 pred = model(X)
 
                 for subclass in range(num_subclasses):
