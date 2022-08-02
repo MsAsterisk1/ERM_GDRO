@@ -66,6 +66,7 @@ class GDROLoss:
         for subclass in range(self.num_subclasses):
             if self.vector_subclass:
                 subclass_idx = c[:,subclass] == 1
+                print(subclass_idx)
             else:
                 subclass_idx = c == subclass
 

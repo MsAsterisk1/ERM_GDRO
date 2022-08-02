@@ -27,6 +27,7 @@ def get_CivilComments_df(csv_file_path=url_CivilComments):
 
     CC_df[CC_subgroup_cols] = (CC_df[CC_subgroup_cols] >= 0.5).astype(int)
     CC_df['toxicity']=(CC_df['toxicity'] >= 0.5).astype(int)
+    CC_df['others'] = (CC_df[CC_subgroup_cols] == 0).all(axis=1).astype(int)
 
     return CC_df
 
@@ -47,7 +48,7 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
                        truncation=True, return_tensors="pt")
 
         labels = torch.from_numpy(sub_df['toxicity'].values)
-        subclasses = torch.from_numpy(sub_df[CC_subgroup_cols].values)
+        subclasses = torch.from_numpy(sub_df[CC_subgroup_cols + ['others']].values)
 
         datasets.append(SubclassedDataset(tokens['input_ids'], tokens['attention_mask'], labels, subclasses, device=device))
 
