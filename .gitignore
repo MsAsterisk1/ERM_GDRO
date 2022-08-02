@@ -130,3 +130,6 @@ dmypy.json
 
 # Large image dataset
 /data/waterbirds_v1.0/
+
+# model weights
+*.wt
