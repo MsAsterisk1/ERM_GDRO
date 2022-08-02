@@ -52,6 +52,7 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replaceme
 
         if replacement: #if dataloader samples with replacement, can only use dataset
             X = dataloader.dataset.features
+            
             y = dataloader.dataset.labels
             c = dataloader.dataset.subclasses
 
