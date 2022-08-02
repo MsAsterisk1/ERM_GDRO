@@ -52,6 +52,7 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replaceme
 
         if replacement: #if dataloader samples with replacement, can only use dataset
             X = dataloader.dataset.features
+
             y = dataloader.dataset.labels
             c = dataloader.dataset.subclasses
 
@@ -80,12 +81,8 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replaceme
 
             for i in range(steps_per_epoch):
                 minibatch = next(dataloader)
-                if len(minibatch) == 3:
-                    X,y,c = minibatch
-                else:
-                    X = minibatch[:-2]
-                    y = minibatch[-2]
-                    c = minibatch[-1]
+                X,y,c = minibatch
+
                 pred = model(X)
 
                 for subclass in range(num_subclasses):
@@ -103,8 +100,9 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replaceme
                 accuracy += (pred.argmax(1) == y).type(torch.float).sum().item()
                 if get_loss:
                     #accumulate loss over entire epoch
-                    loss += loss_fn(pred, y) * len(y) / len(dataloader.dataset)
-
+                    loss += loss_fn(pred, y)
+                    
+            loss /= steps_per_epoch
             subgroup_accuracy = subgroup_correct / num_samples
 
             accuracy /= len(dataloader.dataset)
@@ -173,7 +171,7 @@ def train_epochs(epochs,
                 q_data.extend(loss_fn.q.tolist())
 
         if save_weights_name is not None:
-            print(f'For Epoch {epoch+1}:')
+            print(f'For Cross Val:')
             _ = evaluate(test_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True, verbose=True)
             torch.save(model.state_dict(), f'./epoch_{epoch+1}_{save_weights_name}.wt')
 

@@ -49,17 +49,20 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
                        truncation=True, return_tensors="pt")
 
         labels = torch.from_numpy(sub_df['toxicity'].values)
+        features = torch.stack((tokens['input_ids'], tokens['attention_mask']), dim=1)
+
+
         num_groups = len(CC_subgroup_cols) + 1 #also need the others 'subgroup'
 
         super_subclasses = torch.from_numpy(sub_df[CC_subgroup_cols + ['others']].values)
-        repreat_labels = labels.unsqueeze(1).repeat(1,num_groups)
+        repeat_labels = labels.unsqueeze(1).repeat(1,num_groups)
         
-        toxic_subclasses = torch.logical_and(super_subclasses, repreat_labels)
-        nontoxic_subclasses = torch.logical_and(super_subclasses, torch.logical_not(repreat_labels))
+        toxic_subclasses = torch.logical_and(super_subclasses, repeat_labels)
+        nontoxic_subclasses = torch.logical_and(super_subclasses, torch.logical_not(repeat_labels))
         subclasses = torch.cat((toxic_subclasses, nontoxic_subclasses),dim=1).long()
 
 
-        datasets.append(SubclassedDataset(tokens['input_ids'], tokens['attention_mask'], labels, subclasses, device=device))
+        datasets.append(SubclassedDataset(features, labels, subclasses, device=device))
 
     return datasets
 

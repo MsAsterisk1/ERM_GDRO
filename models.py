@@ -91,7 +91,8 @@ class BertClassifier(nn.Module):
         self.bert = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_labels).to(device)
 
     def forward(self, X):
-        input_id, mask = X
-        return self.bert(input_ids= input_id)[0]
+        input_id = X[:,0] 
+        mask = X[:,1]
+        return self.bert(input_ids= input_id, attention_mask=mask)[0]
 
 

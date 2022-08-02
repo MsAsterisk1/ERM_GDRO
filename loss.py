@@ -13,12 +13,7 @@ class ERMLoss:
 
     def __call__(self, minibatch):
         # minibatch contains one batch of non-subtyped data
-        if len(minibatch) == 3:
-            X, y, _ = minibatch
-        else:
-            X = minibatch[:-2]
-            y = minibatch[-2]
-
+        X, y, _ = minibatch
         loss = self.loss_fn(self.model(X), y)
 
         return loss
@@ -42,12 +37,7 @@ class GDROLoss:
 
     def __call__(self, minibatch):
         
-        if len(minibatch) == 3:
-            X,y,c = minibatch
-        else:
-            X = minibatch[:-2]
-            y = minibatch[-2]
-            c = minibatch[-1]
+        X,y,c = minibatch
 
         batch_size = y.shape[0]
         device = y.device
