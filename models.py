@@ -83,6 +83,7 @@ class TransferModel50(nn.Module):
     def forward(self, x):
         return self.model(x).squeeze()
 
+
 class BertClassifier(nn.Module):
 
     def __init__(self, classes=2, dropout=0.5):

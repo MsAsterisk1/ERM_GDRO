@@ -1,7 +1,7 @@
 import torch
 from loss import ERMLoss, GDROLoss, UpweightLoss
 import models
-import utils.process_data_utils as util
+import utils.process_data_utils as utils
 from train_eval import run_trials
 import pandas as pd
 from datetime import datetime
@@ -31,11 +31,13 @@ if args.dataset == 'waterbirds':
     model_class = models.TransferModel18
     model_args = {'device': device}
 elif args.dataset == 'mnist':
-    train_dataloader, val_dataloader, test_dataloader = util.get_subclassed_MNIST_dataloaders()
+    train_dataloader, val_dataloader, test_dataloader = utils.get_subclassed_MNIST_dataloaders()
     model_class = models.NeuralNetwork
     model_args = {'layers': [28*28, 256, 64, 10]}
-elif args.dataset == '':
-
+elif args.dataset == 'civilcomments':
+    train_dataloader, val_dataloader, test_dataloader = utils.get_CivilComments_DataLoaders()
+    model_class = models.BertClassifier
+    model_args = {}
 
 
 optimizer_class = torch.optim.Adam
