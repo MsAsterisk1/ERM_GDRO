@@ -77,12 +77,12 @@ def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
 
 
 def get_subclassed_MNIST_datasets():
-    root = 'data/'
+    ds = np.DataSource(None)
 
-    train_images = np.fromfile(root + 'mnist/train-images.idx3-ubyte', dtype='>u1')[16:]
-    train_labels = np.fromfile(root + 'mnist/train-labels.idx1-ubyte', dtype='>u1')[8:]
-    test_images = np.fromfile(root + 'mnist/t10k-images.idx3-ubyte', dtype='>u1')[16:]
-    test_labels = np.fromfile(root + 'mnist/t10k-labels.idx1-ubyte', dtype='>u1')[8:]
+    train_images = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz'), dtype='>u1')[16:]
+    train_labels = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz'), dtype='>u1')[8:]
+    test_images = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz'), dtype='>u1')[16:]
+    test_labels = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz'), dtype='>u1')[8:]
 
     train_subclass_labels = train_labels.copy()
     train_labels = (train_labels >= 5).astype(int)
@@ -105,7 +105,9 @@ def get_subclassed_MNIST_datasets():
 
 def get_subclassed_MNIST_dataloaders():
     train_dataset, test_dataset = get_subclassed_MNIST_datasets()
+    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [50000, 10000], generator=torch.Generator().manual_seed(42))
     train_dataloader = InfiniteDataLoader(train_dataset, batch_size=256)
+    val_dataloader = InfiniteDataLoader(val_dataset, batch_size=256)
     test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=len(test_dataset))
 
-    return train_dataloader, test_dataloader
+    return train_dataloader, val_dataloader, test_dataloader

@@ -83,6 +83,7 @@ class TransferModel50(nn.Module):
     def forward(self, x):
         return self.model(x).squeeze()
 
+
 class BertClassifier(nn.Module):
 
     def __init__(self, num_labels=2, device='cpu'):
