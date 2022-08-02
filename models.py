@@ -1,5 +1,5 @@
 from torch import nn
-from transformers import DistilBertModel
+from transformers import DistilBertForSequenceClassification
 import torchvision
 
 
@@ -86,20 +86,12 @@ class TransferModel50(nn.Module):
 
 class BertClassifier(nn.Module):
 
-    def __init__(self, classes=2, dropout=0.5):
-
+    def __init__(self, num_labels=2, device='cpu'):
         super(BertClassifier, self).__init__()
-
-        self.bert = DistilBertModel.from_pretrained('distilbert-base-uncased')
-        self.dropout = nn.Dropout(dropout)
-        self.linear = nn.Linear(768, classes)
-        self.relu = nn.ReLU()
+        self.bert = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_labels).to(device)
 
     def forward(self, X):
         input_id, mask = X
-        pooled_output = self.bert(input_ids= input_id, attention_mask=mask,return_dict=False)[0][:,0]
-        dropout_output = self.dropout(pooled_output)
-        linear_output = self.linear(dropout_output)
-        final_layer = self.relu(linear_output)
+        return self.bert(input_ids= input_id)[0]
 
-        return final_layer
+

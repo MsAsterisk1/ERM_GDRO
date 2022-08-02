@@ -47,7 +47,15 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
                        truncation=True, return_tensors="pt")
 
         labels = torch.from_numpy(sub_df['toxicity'].values)
-        subclasses = torch.from_numpy(sub_df[CC_subgroup_cols + ['others']].values)
+        num_groups = len(CC_subgroup_cols) + 1 #also need the others 'subgroup'
+
+        super_subclasses = torch.from_numpy(sub_df[CC_subgroup_cols + ['others']].values)
+        repreat_labels = labels.unsqueeze(1).repeat(1,num_groups)
+        
+        toxic_subclasses = torch.logical_and(super_subclasses, repreat_labels)
+        nontoxic_subclasses = torch.logical_and(super_subclasses, torch.logical_not(repreat_labels))
+        subclasses = torch.cat((toxic_subclasses, nontoxic_subclasses),dim=1).long()
+
 
         datasets.append(SubclassedDataset(tokens['input_ids'], tokens['attention_mask'], labels, subclasses, device=device))
 
@@ -61,9 +69,9 @@ def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
 
     dataloaders = []
 
-    train = InfiniteDataLoader(datasets[0], batch_size=16)
-    cv = InfiniteDataLoader(datasets[1], batch_size=len(datasets[1]))
-    test = InfiniteDataLoader(datasets[2], batch_size=len(datasets[2]))
+    train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
+    cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
+    test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
 
     return train, cv, test
 
