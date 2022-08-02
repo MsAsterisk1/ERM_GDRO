@@ -115,12 +115,12 @@ def train_epochs(epochs,
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
-        train(train_dataloader, model, loss_fn, optimizer)
+        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose)
         if scheduler:
             scheduler.step(evaluate(test_dataloader, model, num_subclasses=num_subclasses)[0])
 
         if record:
-            epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass)
+            epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass, verbose=verbose)
             accuracies.extend(epoch_accuracies)
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(loss_fn.q.tolist())
@@ -183,10 +183,13 @@ def run_trials(num_trials,
         model = model_class(**model_args).to(device)
         loss_args['model'] = model
         loss_fn = loss_class(**loss_args)
-        optimizer_args['params'] = model.parameters
-        optimizer = optimizer_class(model.parameters(), **optimizer_args)
-        scheduler_args['optimizer'] = optimizer
-        scheduler = scheduler_class(**scheduler_args)
+        optimizer_args['params'] = model.parameters()
+        optimizer = optimizer_class(**optimizer_args)
+        if scheduler_class is not None:
+            scheduler_args['optimizer'] = optimizer
+            scheduler = scheduler_class(**scheduler_args)
+        else:
+            scheduler = None
 
         trial_results = train_epochs(epochs,
                                      train_dataloader,

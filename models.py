@@ -9,7 +9,7 @@ class NeuralNetwork(nn.Module):
     The first argument of the constructor should be the number of input features, and the last should be the number of outputs
     """
     # layers = int layer sizes, starting with the input layer
-    def __init__(self, *layers):
+    def __init__(self, layers):
         super(NeuralNetwork, self).__init__()
         self.flatten = nn.Flatten()
 
