@@ -9,7 +9,7 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset')
+parser.add_argument('dataset')
 parser.add_argument('--test_name', default='test')
 parser.add_argument('--verbose', action='store_true')
 
@@ -31,23 +31,22 @@ if args.dataset == 'waterbirds':
     model_class = models.TransferModel18
     model_args = {'device': device}
 elif args.dataset == 'mnist':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_subclassed_MNIST_dataloaders()
+    train_dataloader, val_dataloader, test_dataloader = utils.get_subclassed_MNIST_dataloaders(device=device)
     model_class = models.NeuralNetwork
     model_args = {'layers': [28*28, 256, 64, 10]}
 elif args.dataset == 'civilcomments':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_CivilComments_DataLoaders()
+    train_dataloader, val_dataloader, test_dataloader = utils.get_CivilComments_DataLoaders(device=device)
     model_class = models.BertClassifier
     model_args = {}
 
 
 optimizer_class = torch.optim.Adam
 
-trials = 100
+trials = 1
 epochs = 100
 batch_size = 128
 split_path = "train_test_splits/LIDC_data_split.csv"
 subclass_path = 'subclass_labels/subclasses.csv'
-subclass_column = args.subclass_column
 feature_path = 'LIDC_20130817_AllFeatures2D_MaxSlicePerNodule_inLineRatings.csv'
 
 results_root_dir = 'test_results/'
@@ -58,31 +57,21 @@ verbose = args.verbose
 
 num_subclasses = len(test_dataloader.dataset.subclasses.unique())
 subtypes = ["Overall"]
-if subclass_column == 'cluster':
-    subtypes.extend(["Predominantly Benign", "Somewhat Benign", "Somewhat Malignant", "Predominantly Malignant"])
-elif subclass_column == 'spic_groups':
-    subtypes.extend(["Unspiculated benign", "Spiculated benign", "Spiculated malignant", "Unspiculated malignant"])
-elif subclass_column == 'malignancy':
-    subtypes.extend(["Highly Unlikely", "Moderately Unlikely", "Moderately Suspicious", "Highly Suspicious"])
-else:
-    subtypes.extend(list(range(num_subclasses)))
+subtypes.extend(list(range(num_subclasses)))
 
 erm_class = ERMLoss
-erm_args = [None, torch.nn.CrossEntropyLoss()]
+erm_args = {'loss_fn': torch.nn.CrossEntropyLoss()}
 gdro_class = GDROLoss
-gdro_args = [None, torch.nn.CrossEntropyLoss(), eta, num_subclasses]
-dynamic_class = DynamicLoss
-dynamic_args = [None, torch.nn.CrossEntropyLoss(), eta, gamma, num_subclasses]
-dynamic_soft_args = [None, torch.nn.CrossEntropyLoss(), eta, gamma, num_subclasses, None, torch.nn.Softmax(dim=0)]
+gdro_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses}
 upweight_class = UpweightLoss
-upweight_args = [None, torch.nn.CrossEntropyLoss(), num_subclasses]
+upweight_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'num_subclasses': num_subclasses}
 
 optimizer_args = {'lr': lr, 'weight_decay': wd}
 
 results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
-for loss_class, loss_args in zip([erm_class, gdro_class, dynamic_class, upweight_class],
-                                 [erm_args, gdro_args, dynamic_args, upweight_args]):
+for loss_class, loss_args in zip([erm_class],
+                                 [erm_args]):
     # for loss_class, loss_args in zip([dynamic_class], [dynamic_args]):
     fn_name = loss_class.__name__
 

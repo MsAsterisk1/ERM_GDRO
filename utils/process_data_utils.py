@@ -79,35 +79,44 @@ def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
     return train, cv, test
 
 
-def get_subclassed_MNIST_datasets():
+def get_subclassed_MNIST_datasets(device='cpu'):
     ds = np.DataSource(None)
 
-    train_images = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz'), dtype='>u1')[16:]
-    train_labels = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz'), dtype='>u1')[8:]
-    test_images = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz'), dtype='>u1')[16:]
-    test_labels = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz'), dtype='>u1')[8:]
+    # train_images = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz'), dtype='>u1')[16:]
+    # train_labels = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz'), dtype='>u1')[8:]
+    # test_images = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz'), dtype='>u1')[16:]
+    # test_labels = np.fromfile(ds.open('http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz'), dtype='>u1')[8:]
+
+    train_images = np.fromfile('data/mnist/train-images.idx3-ubyte', dtype='>u1')[16:]
+    train_labels = np.fromfile(ds.open('data/mnist/train-labels.idx1-ubyte'), dtype='>u1')[8:]
+    test_images = np.fromfile(ds.open('data/mnist/t10k-images.idx3-ubyte'), dtype='>u1')[16:]
+    test_labels = np.fromfile(ds.open('data/mnist/t10k-labels.idx1-ubyte'), dtype='>u1')[8:]
+
+    train_images = np.reshape(train_images, (-1, 28 * 28))
+    test_images = np.reshape(test_images, (-1, 28 * 28))
 
     train_subclass_labels = train_labels.copy()
-    train_labels = (train_labels >= 5).astype(int)
+    train_labels = (train_labels >= 5)
     test_subclass_labels = test_labels.copy()
-    test_labels = (test_labels >= 5).astype(int)
+    test_labels = (test_labels >= 5)
 
     train_dataset = SubclassedDataset(
-        torch.from_numpy(train_images),
-        torch.from_numpy(train_labels),
-        torch.from_numpy(train_subclass_labels)
+        torch.from_numpy(train_images).to(device=device, dtype=torch.float),
+        torch.from_numpy(train_labels).to(device=device, dtype=torch.long),
+        torch.from_numpy(train_subclass_labels).to(device=device, dtype=torch.long)
     )
     test_dataset = SubclassedDataset(
-        torch.from_numpy(test_images),
-        torch.from_numpy(test_labels),
-        torch.from_numpy(test_subclass_labels)
+        torch.from_numpy(test_images).to(device=device, dtype=torch.float),
+        torch.from_numpy(test_labels).to(device=device, dtype=torch.long),
+        torch.from_numpy(test_subclass_labels).to(device=device, dtype=torch.long)
     )
 
     return train_dataset, test_dataset
 
 
-def get_subclassed_MNIST_dataloaders():
-    train_dataset, test_dataset = get_subclassed_MNIST_datasets()
+def get_subclassed_MNIST_dataloaders(device='cpu'):
+    train_dataset, test_dataset = get_subclassed_MNIST_datasets(device=device)
+    print(len(train_dataset))
     train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [50000, 10000], generator=torch.Generator().manual_seed(42))
     train_dataloader = InfiniteDataLoader(train_dataset, batch_size=256)
     val_dataloader = InfiniteDataLoader(val_dataset, batch_size=256)
