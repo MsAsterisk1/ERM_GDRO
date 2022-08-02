@@ -6,6 +6,7 @@ Code directly adapted from DomainBeds paper
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 
 import torch
+import math
 
 
 class _InfiniteSampler(torch.utils.data.Sampler):
@@ -23,7 +24,7 @@ class InfiniteDataLoader:
     """
     Uses an infinite sampler to create a dataloader that never becomes empty
     """
-    def __init__(self, dataset, batch_size, weights=None, num_workers=0):
+    def __init__(self, dataset, batch_size, replacement=True, drop_last=False, weights=None, num_workers=0):
         super().__init__()
 
         if weights is not None:
@@ -34,12 +35,12 @@ class InfiniteDataLoader:
         else:
             sampler = torch.utils.data.RandomSampler(
                 dataset,
-                replacement=True)
+                replacement=replacement)
 
         batch_sampler = torch.utils.data.BatchSampler(
             sampler,
             batch_size=batch_size,
-            drop_last=True)
+            drop_last=drop_last)
 
         self._infinite_iterator = iter(torch.utils.data.DataLoader(
             dataset,
@@ -61,4 +62,4 @@ class InfiniteDataLoader:
         raise ValueError
 
     def batches_per_epoch(self):
-        return len(self.dataset) // self.batch_size
+        return math.ceil(len(self.dataset) / self.batch_size)

@@ -84,32 +84,3 @@ class OnDemandImageDataset(Dataset):
             self.device)
 
         return img_tensor, label, subclass
-
-
-class SubclassedMNISTDataset(Dataset):
-    """
-    MNIST handwritten digits dataset, where the classification task is to classify digits as lt or geq 5, with each digit as a subclass
-    Similar to http://stanford.edu/~nims/no_subclass_left_behind.pdf
-    """
-
-    def __init__(self, test=False):
-        if test:
-            self.images = np.fromfile(root + 'mnist/t10k-images.idx3-ubyte', dtype='>u1')[16:]
-            self.labels = np.fromfile(root + 'mnist/t10k-labels.idx1-ubyte', dtype='>u1')[8:]
-        else:
-            self.images = np.fromfile(root + 'mnist/train-images.idx3-ubyte', dtype='>u1')[16:]
-            self.labels = np.fromfile(root + 'mnist/train-labels.idx1-ubyte', dtype='>u1')[8:]
-
-        self.subclass_labels = self.labels.copy()
-        self.labels = (self.labels >= 5).astype(int)
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, idx):
-        img_tensor = torch.tensor(self.images[28 * 28 * idx: 28 * 28 * idx + 28 * 28])
-        label_tensor = torch.tensor(self.labels[idx])
-        subclass_tensor = torch.tensor(self.subclass_labels[idx])
-
-        return img_tensor, label_tensor, subclass_tensor
-
