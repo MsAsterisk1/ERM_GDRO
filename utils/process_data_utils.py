@@ -16,8 +16,6 @@ split_rename = {'train':0, 'val':1, 'test':2}
 
 def get_CivilComments_df(csv_file_path=url_CivilComments):
 
-
-
     CC_df = pd.read_csv(csv_file_path, index_col=0)
 
     CC_df.sort_values('id', inplace=True)
@@ -30,6 +28,7 @@ def get_CivilComments_df(csv_file_path=url_CivilComments):
     CC_df['others'] = (CC_df[CC_subgroup_cols] == 0).all(axis=1).astype(int)
 
     return CC_df
+
 
 def get_CivilComments_Datasets(CC_df=None, device='cpu'):
 
@@ -54,6 +53,7 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
 
     return datasets
 
+
 def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
 
     if datasets is None:
@@ -66,3 +66,38 @@ def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
     test = InfiniteDataLoader(datasets[2], batch_size=len(datasets[2]))
 
     return train, cv, test
+
+
+def get_subclassed_MNIST_datasets():
+    root = 'data/'
+
+    train_images = np.fromfile(root + 'mnist/train-images.idx3-ubyte', dtype='>u1')[16:]
+    train_labels = np.fromfile(root + 'mnist/train-labels.idx1-ubyte', dtype='>u1')[8:]
+    test_images = np.fromfile(root + 'mnist/t10k-images.idx3-ubyte', dtype='>u1')[16:]
+    test_labels = np.fromfile(root + 'mnist/t10k-labels.idx1-ubyte', dtype='>u1')[8:]
+
+    train_subclass_labels = train_labels.copy()
+    train_labels = (train_labels >= 5).astype(int)
+    test_subclass_labels = test_labels.copy()
+    test_labels = (test_labels >= 5).astype(int)
+
+    train_dataset = SubclassedDataset(
+        torch.from_numpy(train_images),
+        torch.from_numpy(train_labels),
+        torch.from_numpy(train_subclass_labels)
+    )
+    test_dataset = SubclassedDataset(
+        torch.from_numpy(test_images),
+        torch.from_numpy(test_labels),
+        torch.from_numpy(test_subclass_labels)
+    )
+
+    return train_dataset, test_dataset
+
+
+def get_subclassed_MNIST_dataloaders():
+    train_dataset, test_dataset = get_subclassed_MNIST_datasets()
+    train_dataloader = InfiniteDataLoader(train_dataset, batch_size=256)
+    test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=len(test_dataset))
+
+    return train_dataloader, test_dataloader
