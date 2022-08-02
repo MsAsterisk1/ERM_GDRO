@@ -150,10 +150,10 @@ def train_epochs(epochs,
     :return: A list containing the overall accuracy and subclass sensitivities for each epoch, arranged 1-dimensionally ex. [accuracy_1, subclass1_1, subclass2_1, accuracy_2, subclass1_2, subclass2_2...]
     """
     if record:
-        accuracies = []
+        accuracies = list(evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass, verbose=verbose))
         q_data = None
         if isinstance(loss_fn, GDROLoss):
-            q_data = []
+            q_data = loss_fn.q.tolist()
 
     for epoch in range(epochs):
         if verbose:
@@ -173,7 +173,6 @@ def train_epochs(epochs,
             print(f'For Epoch {epoch+1}:')
             _ = evaluate(test_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True, verbose=True)
             torch.save(model.state_dict(), f'./epoch_{epoch+1}_{save_weights_name}.wt')
-
 
     if record:
         return accuracies, q_data
@@ -241,16 +240,17 @@ def run_trials(num_trials,
         else:
             scheduler = None
 
-        trial_results = train_epochs(epochs,
-                                     train_dataloader,
-                                     test_dataloader,
-                                     model,
-                                     loss_fn,
-                                     optimizer,
-                                     scheduler,
-                                     verbose,
-                                     record,
-                                     num_subclasses)
+        trial_results = train_epochs(epochs=epochs,
+                                     train_dataloader=train_dataloader,
+                                     test_dataloader=test_dataloader,
+                                     model=model,
+                                     loss_fn=loss_fn,
+                                     optimizer=optimizer,
+                                     scheduler=scheduler,
+                                     verbose=verbose,
+                                     record=record,
+                                     num_subclasses=num_subclasses
+                                     )
 
         if record:
             trial_accuracies, trial_q_data, trial_g_data = trial_results

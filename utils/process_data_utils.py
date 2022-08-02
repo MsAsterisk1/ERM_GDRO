@@ -89,13 +89,13 @@ def get_subclassed_MNIST_datasets(device='cpu'):
     test_images = np.fromfile(ds.open('data/mnist/t10k-images.idx3-ubyte'), dtype='>u1')[16:]
     test_labels = np.fromfile(ds.open('data/mnist/t10k-labels.idx1-ubyte'), dtype='>u1')[8:]
 
-    train_images = np.array([train_images[28 * 28 * i: 28 * 28 * i + 28 * 28] for i in range(len(train_images) // (28 * 28))])
-    test_images = np.array([test_images[28 * 28 * i: 28 * 28 * i + 28 * 28] for i in range(len(test_images) // (28 * 28))])
+    train_images = np.reshape(train_images, (-1, 28 * 28))
+    test_images = np.reshape(test_images, (-1, 28 * 28))
 
     train_subclass_labels = train_labels.copy()
-    train_labels = (train_labels >= 5).astype(int)
+    train_labels = (train_labels >= 5)
     test_subclass_labels = test_labels.copy()
-    test_labels = (test_labels >= 5).astype(int)
+    test_labels = (test_labels >= 5)
 
     train_dataset = SubclassedDataset(
         torch.from_numpy(train_images).to(device=device, dtype=torch.float),

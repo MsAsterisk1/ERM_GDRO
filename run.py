@@ -9,7 +9,7 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset')
+parser.add_argument('dataset')
 parser.add_argument('--test_name', default='test')
 parser.add_argument('--verbose', action='store_true')
 
