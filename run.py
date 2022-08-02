@@ -1,6 +1,7 @@
 import torch
 from loss import ERMLoss, GDROLoss, UpweightLoss
 import models
+import utils.process_data_utils as util
 from train_eval import run_trials
 import pandas as pd
 from datetime import datetime
@@ -8,10 +9,8 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('subclass_column')
+parser.add_argument('--dataset')
 parser.add_argument('--test_name', default='test')
-parser.add_argument('--cnn', action='store_true')
-parser.add_argument('--e2e', action='store_true')
 parser.add_argument('--verbose', action='store_true')
 
 args = parser.parse_args()
@@ -25,15 +24,20 @@ gamma = 1.0
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-if args.e2e:
+
+if args.dataset == 'waterbirds':
+    # get waterbirds data
+
     model_class = models.TransferModel18
-    model_args = [True, False, device]
-else:
+    model_args = {'device': device}
+elif args.dataset == 'mnist':
+    train_dataloader, val_dataloader, test_dataloader = util.get_subclassed_MNIST_dataloaders()
     model_class = models.NeuralNetwork
-    if args.cnn:
-        model_args = [512, 64, 36, 2]
-    else:
-        model_args = [64, 36, 2]
+    model_args = {'layers': [28*28, 256, 64, 10]}
+elif args.dataset == '':
+
+
+
 optimizer_class = torch.optim.Adam
 
 trials = 100
@@ -49,17 +53,6 @@ results_root_dir = 'test_results/'
 test_name = args.test_name
 
 verbose = args.verbose
-
-if args.cnn:
-    train, val, test = image_data_utils.get_features(device=device, subclass=subclass_column)
-    train_dataloader = data_utils.create_dataloader(train, batch_size, is_dataframe=False)
-    val_dataloader = data_utils.create_dataloader(val, len(val), is_dataframe=False)
-    test_dataloader = data_utils.create_dataloader(test, len(test), is_dataframe=False)
-elif args.e2e:
-    train, val, test = image_data_utils.get_features(device=device, images=True, subclass=subclass_column)
-    train_dataloader = data_utils.create_dataloader(train, batch_size, is_dataframe=False)
-    val_dataloader = data_utils.create_dataloader(val, len(val), is_dataframe=False)
-    test_dataloader = data_utils.create_dataloader(test, len(test), is_dataframe=False)
 
 num_subclasses = len(test_dataloader.dataset.subclasses.unique())
 subtypes = ["Overall"]
