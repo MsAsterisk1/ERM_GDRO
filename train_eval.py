@@ -35,7 +35,7 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False):
         print("Average training loss:", avg_loss)
 
 
-def evaluate(dataloader, model, num_subclasses, vector_subclass=False, verbose=False):
+def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replacement=False, get_loss=False, verbose=False):
     """
     Evaluate the model's accuracy and subclass sensitivities
     :param dataloader: The dataloader for the validation/testing data
@@ -49,34 +49,77 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, verbose=F
     num_samples = np.zeros(num_subclasses)
     subgroup_correct = np.zeros(num_subclasses)
     with torch.no_grad():
-        X = dataloader.dataset.features
-        y = dataloader.dataset.labels
-        c = dataloader.dataset.subclasses
 
-        pred = model(X)
+        if replacement: #if dataloader samples with replacement, can only use dataset
+            X = dataloader.dataset.features
+            y = dataloader.dataset.labels
+            c = dataloader.dataset.subclasses
 
-        for subclass in range(num_subclasses):
-            if vector_subclass:
-                subclass_idx = c[:,subclass] == 1
-            else:
-                subclass_idx = c == subclass
+            pred = model(X)
 
-            num_samples[subclass] += torch.sum(subclass_idx)
-            subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(
-                torch.float).sum().item()
+            for subclass in range(num_subclasses):
+                if vector_subclass:
+                    subclass_idx = c[:,subclass] == 1
+                else:
+                    subclass_idx = c == subclass
 
-    subgroup_accuracy = subgroup_correct / num_samples
+                num_samples[subclass] += torch.sum(subclass_idx)
+                subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(
+                    torch.float).sum().item()
+            
+            subgroup_accuracy = subgroup_correct / num_samples
+            accuracy = (pred.argmax(1) == y).type(
+            torch.float).sum().item()/ len(y)
 
-    
-    # for calculating overall accuracy, we simply recalculate
-    # as the subclasses may not be a complete partition of data
-    accuracy = (pred.argmax(1) == y).type(
-                torch.float).sum().item()/ len(y)
+        else: #if dataloader does not replace, can use batches
+            steps_per_epoch = dataloader.batches_per_epoch()
+            accuracy = 0
+            if get_loss:
+                loss = 0
+                loss_fn = torch.nn.CrossEntropyLoss()
+
+            for i in range(steps_per_epoch):
+                minibatch = next(dataloader)
+                if len(minibatch) == 3:
+                    X,y,c = minibatch
+                else:
+                    X = minibatch[:-2]
+                    y = minibatch[-2]
+                    c = minibatch[-1]
+                pred = model(X)
+
+                for subclass in range(num_subclasses):
+                    if vector_subclass:
+                        subclass_idx = c[:,subclass] == 1
+                    else:
+                        subclass_idx = c == subclass                    
+                
+                    num_samples[subclass] += torch.sum(subclass_idx)
+
+
+                    if torch.sum(subclass_idx) > 0:
+                        subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(torch.float).sum().item()
+                
+                accuracy += (pred.argmax(1) == y).type(torch.float).sum().item()
+                if get_loss:
+                    #accumulate loss over entire epoch
+                    loss += loss_fn(pred, y) * len(y) / len(dataloader.dataset)
+
+            subgroup_accuracy = subgroup_correct / num_samples
+
+            accuracy /= len(dataloader.dataset)
+
 
     if verbose:
-        print("Accuracy:", accuracy, "\nAccuracy over subgroups:", subgroup_accuracy, "\nWorst Group Accuracy:",
+        if get_loss:
+            print('Loss:', loss.item(), "Accuracy:", accuracy, "\nAccuracy over subgroups:", subgroup_accuracy, "\nWorst Group Accuracy:",
               min(subgroup_accuracy))
-
+        else:
+            print("Accuracy:", accuracy, "\nAccuracy over subgroups:", subgroup_accuracy, "\nWorst Group Accuracy:",
+              min(subgroup_accuracy))
+    if get_loss:
+        return (loss, accuracy, *subgroup_accuracy)
+    
     return (accuracy, *subgroup_accuracy)
 
 
@@ -90,6 +133,7 @@ def train_epochs(epochs,
                  vector_subclass=False,
                  verbose=False,
                  record=False,
+                 save_weights_name=None,
                  num_subclasses=1):
     """
     Trains the model for a number of epochs and evaluates the model at each epoch
@@ -124,6 +168,12 @@ def train_epochs(epochs,
             accuracies.extend(epoch_accuracies)
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(loss_fn.q.tolist())
+
+        if save_weights_name is not None:
+            print(f'For Epoch {epoch+1}:')
+            _ = evaluate(test_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True, verbose=True)
+            torch.save(model.state_dict(), f'./epoch_{epoch+1}_{save_weights_name}.wt')
+
 
     if record:
         return accuracies, q_data

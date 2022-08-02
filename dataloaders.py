@@ -24,7 +24,7 @@ class InfiniteDataLoader:
     """
     Uses an infinite sampler to create a dataloader that never becomes empty
     """
-    def __init__(self, dataset, batch_size, replacement=True, drop_last=False, weights=None, num_workers=0):
+    def __init__(self, dataset, batch_size, replacement=True, drop_last=True, weights=None, num_workers=0):
         super().__init__()
 
         if weights is not None:

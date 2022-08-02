@@ -69,9 +69,9 @@ def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
 
     dataloaders = []
 
-    train = InfiniteDataLoader(datasets[0], batch_size=16)
-    cv = InfiniteDataLoader(datasets[1], batch_size=len(datasets[1]))
-    test = InfiniteDataLoader(datasets[2], batch_size=len(datasets[2]))
+    train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
+    cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
+    test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
 
     return train, cv, test
 
