@@ -47,7 +47,7 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
                        truncation=True, return_tensors="pt")
 
         labels = torch.from_numpy(sub_df['toxicity'].values)
-        features = torch.stack(tokens['input_ids'], tokens['attention_mask'])
+        features = torch.stack((tokens['input_ids'], tokens['attention_mask']))
 
 
         num_groups = len(CC_subgroup_cols) + 1 #also need the others 'subgroup'
