@@ -20,7 +20,7 @@ args = parser.parse_args()
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 if args.dataset == 'waterbirds':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_waterbirds_dataloaders(batch_size=128, device=device)
+    train_dataloader, val_dataloader, test_dataloader = utils.get_waterbirds_dataloaders(batch_size=64, device=device)
     model_class = models.TransferModel50
     model_args = {'device': device, 'freeze': False}
 
