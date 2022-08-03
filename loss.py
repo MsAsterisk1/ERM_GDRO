@@ -128,12 +128,11 @@ class ERMGDROLoss:
             self.q /= self.q.sum()
 
         # loss has to be normalized (subclasses scaled by their size) to be comparable to ERM (in which subclasses affect the loss in proportion to their size)
-        losses *= subclass_counts
         gdro_loss = torch.dot(losses, self.q)
-        gdro_loss /= batch_size
-        gdro_loss *= self.num_subclasses
+        # gdro_loss /= batch_size
+        # gdro_loss *= self.num_subclasses
 
-        erm_loss = torch.sum(losses)
+        erm_loss = torch.sum(losses * subclass_counts)
 
         loss = self.t * erm_loss + (1 - self.t) * gdro_loss
 

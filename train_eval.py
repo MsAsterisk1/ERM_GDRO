@@ -160,9 +160,6 @@ def train_epochs(epochs,
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
-        if record and q_data:
-            print(len(q_data))
-
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose)
         if scheduler:
             scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
