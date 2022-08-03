@@ -124,6 +124,7 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replaceme
 
 def train_epochs(epochs,
                  train_dataloader,
+                 val_dataloader,
                  test_dataloader,
                  model,
                  loss_fn,
@@ -138,7 +139,8 @@ def train_epochs(epochs,
     Trains the model for a number of epochs and evaluates the model at each epoch
     :param epochs: The number of epochs to train
     :param train_dataloader: The dataloader for the training data
-    :param test_dataloader: The dataloader for the validation/testing data
+    :param val_dataloader: The dataloader for the validation data
+    :param test_dataloader: The dataloader for the testing data
     :param model: The model to train and evaluate
     :param loss_fn: The loss function to use for training
     :param optimizer: The optimizer to use for training
@@ -163,7 +165,7 @@ def train_epochs(epochs,
 
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose)
         if scheduler:
-            scheduler.step(evaluate(test_dataloader, model, num_subclasses=num_subclasses)[0])
+            scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass, verbose=verbose)
@@ -185,6 +187,7 @@ def train_epochs(epochs,
 def run_trials(num_trials,
                epochs,
                train_dataloader,
+               val_dataloader,
                test_dataloader,
                model_class,
                model_args,
@@ -203,7 +206,8 @@ def run_trials(num_trials,
     :param num_trials: The number of trials to run
     :param epochs: The number of epochs to train per trial
     :param train_dataloader: The dataloader for the training data
-    :param test_dataloader: The dataloader for the validation/test data
+    :param val_dataloader: The dataloader for the validation data
+    :param test_dataloader: The dataloader for the test data
     :param model_class: Class of the model to train and evaluate. Must be a class so it can be initialized at the beginning of each trial
     :param model_args: kwargs to input for the model class constructor
     :param loss_class: Class of the loss function to use for training
@@ -244,6 +248,7 @@ def run_trials(num_trials,
 
         trial_results = train_epochs(epochs=epochs,
                                      train_dataloader=train_dataloader,
+                                     val_dataloader=val_dataloader,
                                      test_dataloader=test_dataloader,
                                      model=model,
                                      loss_fn=loss_fn,

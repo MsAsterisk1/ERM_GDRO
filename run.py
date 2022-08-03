@@ -42,7 +42,7 @@ elif args.dataset == 'civilcomments':
 
 optimizer_class = torch.optim.Adam
 
-trials = 1
+trials = 30
 epochs = 10
 split_path = "train_test_splits/LIDC_data_split.csv"
 subclass_path = 'subclass_labels/subclasses.csv'
@@ -81,6 +81,7 @@ for loss_class, loss_args in zip([erm_class, gdro_class],
         num_trials=trials,
         epochs=epochs,
         train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader,
         test_dataloader=test_dataloader,
         model_class=model_class,
         model_args=model_args,

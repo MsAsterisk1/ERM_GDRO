@@ -1,8 +1,8 @@
-import random
-
 import torch
 import pandas as pd
 import numpy as np
+
+import wilds
 
 from datasets import SubclassedDataset
 from dataloaders import InfiniteDataLoader
@@ -14,6 +14,33 @@ url_CivilComments='https://worksheets.codalab.org/rest/bundles/0x8cd3de0634154ae
 
 CC_subgroup_cols = ['male', 'female', 'LGBTQ', 'christian', 'muslim', 'other_religion', 'black', 'white']
 split_rename = {'train':0, 'val':1, 'test':2}
+
+
+def split_stratified(dataset, sizes, rng):
+    """
+    Shuffle and split a SubclassedDataset into two, stratified so the subclass proportions of each new dataset are as close as
+    possible to the original
+    """
+    assert len(sizes) == 2
+
+    # Shuffle dataset
+    shuffle_idx = np.arange(len(dataset))
+    rng.shuffle(shuffle_idx)
+    dataset = SubclassedDataset(*dataset[shuffle_idx])
+
+    subclasses = torch.unique(dataset.subclasses)
+
+    total_subclass_sizes = np.array([sum(dataset.subclasses == c).item() for c in subclasses])
+    subset_subclass_sizes = np.array([np.round(total_subclass_sizes * sizes[d] / len(dataset)).astype(int) for d in range(len(sizes))])
+
+    idxs = [[], []]
+    for c in subclasses:
+        subclass_idx = np.where((dataset.subclasses == c).tolist())[0]
+
+        idxs[0].extend((subclass_idx[:subset_subclass_sizes[0][c]]).tolist())
+        idxs[1].extend((subclass_idx[subset_subclass_sizes[0][c]:]).tolist())
+
+    return SubclassedDataset(*(dataset[idxs[0]])), SubclassedDataset(*(dataset[idxs[1]]))
 
 
 def get_CivilComments_df(csv_file_path=url_CivilComments):
@@ -136,21 +163,19 @@ def get_colored_MNIST_datasets(device='cpu', seed=None):
 
 
 def get_colored_MNIST_dataloaders(batch_size, device='cpu', seed=None):
-    train_dataset, test_dataset = get_colored_MNIST_datasets(device=device)
-    train_dataset, val_dataset = torch.utils.data.random_split(
-        train_dataset, [50000, 10000],
-        generator=torch.Generator().manual_seed(seed)
-    )
+    rng = np.random.default_rng(seed)
 
+    train_dataset, test_dataset = get_colored_MNIST_datasets(device=device)
+    train_dataset, val_dataset = split_stratified(dataset=train_dataset, sizes=[50000, 10000], rng=rng)
     # randomly remove 95% of 8s from the training set
     # this happens after the train/val split so the split can be done with nice round numbers 50k and 10k
     remove_digit = 8
     remove_frac = 0.95
 
-    rng = np.random.default_rng(seed)
-    train_dataset = SubclassedDataset(*train_dataset[np.where(
-        (train_dataset.subclasses != remove_digit) | (rng.random(len(train_dataset)) > remove_frac)
-    )])
+    train_dataset = SubclassedDataset(*train_dataset[
+        (train_dataset.subclasses != remove_digit) |
+        torch.tensor(rng.random(len(train_dataset)) > remove_frac, device=device)
+    ])
 
     train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size)
     val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size)
