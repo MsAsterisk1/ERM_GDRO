@@ -142,17 +142,21 @@ def get_colored_MNIST_dataloaders(batch_size, device='cpu', seed=None):
         generator=torch.Generator().manual_seed(seed)
     )
 
-    # randomly remove 95% of 8s
+    # randomly remove 95% of 8s from the training set
+    # this happens after the train/val split so the split can be done with nice round numbers 50k and 10k
+    remove_digit = 8
+    remove_frac = 0.95
 
-    #TODO use Subset instead of sample weights because I think this may not work for the test dataloader
+    rng = np.random.default_rng(seed)
+    train_dataset = torch.utils.data.Subset(
+        train_dataset,
+        np.where(
+            (train_dataset.subclasses != remove_digit) | (rng.random(len(train_dataset)) > remove_frac)
+        )
+    )
 
-    rng = np.random.default_rng(42)
-    train_weights = (train_dataset.subclasses != 8) & (rng.random(len(train_dataset)) > 0.95)
-    val_weights = (val_dataset.subclasses != 8) & (rng.random(len(val_dataset)) > 0.95)
-    test_weights = (test_dataset.subclasses != 8) & (rng.random(len(test_dataset)) > 0.95)
-
-    train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size, weights=train_weights)
-    val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size, weights=val_weights)
-    test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=len(test_dataset), weights=test_weights)
+    train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size)
+    val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size)
+    test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=len(test_dataset))
 
     return train_dataloader, val_dataloader, test_dataloader
