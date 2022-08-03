@@ -2,7 +2,8 @@ import torch
 import pandas as pd
 import numpy as np
 
-import wilds
+from wilds import get_dataset
+from torchvision import transforms
 
 from datasets import SubclassedDataset
 from dataloaders import InfiniteDataLoader
@@ -151,5 +152,37 @@ def get_MNIST_dataloaders(batch_size, device='cpu', seed=None):
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def get_waterbirds_datasets():
-    return None
+def get_waterbirds_datasets(device='cpu'):
+    dataset = get_dataset('waterbirds', download=True)
+    dataset._metadata_array = (2 * dataset._metadata_array[:, 1] + dataset._metadata_array[:, 0]).to(device)
+    dataset._y_array = dataset._y_array.to(device)
+
+    train_dataset = dataset.get_subset(
+        "train",
+        transform=transforms.Compose(
+            [transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Lambda(lambda x: x.to(device))]
+        ), )
+
+    val_dataset = dataset.get_subset(
+        "val",
+        transform=transforms.Compose(
+            [transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Lambda(lambda x: x.to(device))]
+        ), )
+
+    test_dataset = dataset.get_subset(
+        "test",
+        transform=transforms.Compose(
+            [transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Lambda(lambda x: x.to(device))]
+        ), )
+
+    return train_dataset, val_dataset, test_dataset
+
+
+def get_waterbirds_dataloaders(batch_size, device='cpu'):
+    train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device)
+
+    train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size)
+    val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size)
+    test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=batch_size)
+
+    return train_dataloader, val_dataloader, test_dataloader

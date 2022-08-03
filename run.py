@@ -17,33 +17,45 @@ args = parser.parse_args()
 
 # hyperparameters
 
-lr = 0.0005
-wd = 0.005
-eta = 0.01
-gamma = 1.0
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-
 if args.dataset == 'waterbirds':
-    # get waterbirds data
+    train_dataloader, val_dataloader, test_dataloader = utils.get_waterbirds_dataloaders(batch_size=128, device=device)
+    model_class = models.TransferModel50
+    model_args = {'device': device, 'freeze': False}
 
-    model_class = models.TransferModel18
-    model_args = {'device': device}
+    # From Distributionally Robust Neural Networks
+    eta = 0.01
+    epochs = 300
+    optimizer_class = torch.optim.SGD
+    optimizer_args = {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9}
+    num_subclasses = 4
+
 elif args.dataset == 'mnist':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_MNIST_dataloaders(batch_size=1024, device=device, seed=42)
+    train_dataloader, val_dataloader, test_dataloader = utils.get_MNIST_dataloaders(batch_size=1024, device=device,
+                                                                                    seed=42)
     model_class = models.NeuralNetwork
-    model_args = {'layers': [28*28, 256, 64, 10]}
+    model_args = {'layers': [28 * 28, 256, 64, 10]}
+
+    eta = 0.01
+    epochs = 10
+    optimizer_class = torch.optim.Adam
+    optimizer_args = {'lr': 0.0005, 'weight_decay': 0.005}
+    num_subclasses = 10
+
 elif args.dataset == 'civilcomments':
     train_dataloader, val_dataloader, test_dataloader = utils.get_CivilComments_DataLoaders(device=device)
     model_class = models.BertClassifier
     model_args = {}
 
+    # From WILDS
+    eta = 0.01
+    epochs = 5
+    optimizer_class = torch.optim.Adam
+    optimizer_args = {'lr': 0.00001, 'weight_decay': 0.01}
+    num_subclasses = 18
 
-optimizer_class = torch.optim.Adam
-
-trials = 100
-epochs = 10
+trials = 1
 split_path = "train_test_splits/LIDC_data_split.csv"
 subclass_path = 'subclass_labels/subclasses.csv'
 feature_path = 'LIDC_20130817_AllFeatures2D_MaxSlicePerNodule_inLineRatings.csv'
@@ -54,30 +66,34 @@ test_name = args.test_name
 
 verbose = args.verbose
 
-num_subclasses = len(test_dataloader.dataset.subclasses.unique())
 subtypes = ["Overall"]
 subtypes.extend(list(range(num_subclasses)))
 
 erm_class = ERMLoss
+erm_name = "ERMLoss"
 erm_args = {'loss_fn': torch.nn.CrossEntropyLoss()}
 gdro_class = GDROLoss
+gdro_name = "GDROLoss"
 gdro_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses}
 upweight_class = UpweightLoss
+upweight_name = "UpweightLoss"
 upweight_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'num_subclasses': num_subclasses}
 mix25_class = ERMGDROLoss
+mix25_name = "MixLoss25"
 mix25_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.25}
 mix50_class = ERMGDROLoss
+mix50_name = "MixLoss50"
 mix50_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.50}
 mix75_class = ERMGDROLoss
+mix75_name = "MixLoss75"
 mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.75}
-
-optimizer_args = {'lr': lr, 'weight_decay': wd}
 
 results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
-for loss_class, loss_args in zip([erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
-                                 [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
-    fn_name = loss_class.__name__
+for loss_class, fn_name, loss_args in zip(
+        [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
+        [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
+        [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
 
     if verbose:
         print(f"Running trials: {fn_name}")
