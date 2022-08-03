@@ -1,5 +1,5 @@
 import torch
-from loss import ERMLoss, GDROLoss, UpweightLoss
+from loss import ERMLoss, GDROLoss, UpweightLoss, ERMGDROLoss
 import models
 import utils.process_data_utils as utils
 from train_eval import run_trials
@@ -30,10 +30,10 @@ if args.dataset == 'waterbirds':
 
     model_class = models.TransferModel18
     model_args = {'device': device}
-elif args.dataset == 'coloredmnist':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_colored_MNIST_dataloaders(batch_size=1024, device=device, seed=42)
+elif args.dataset == 'mnist':
+    train_dataloader, val_dataloader, test_dataloader = utils.get_MNIST_dataloaders(batch_size=1024, device=device, seed=42)
     model_class = models.NeuralNetwork
-    model_args = {'layers': [28*28*3, 256, 64, 10]}
+    model_args = {'layers': [28*28, 256, 64, 10]}
 elif args.dataset == 'civilcomments':
     train_dataloader, val_dataloader, test_dataloader = utils.get_CivilComments_DataLoaders(device=device)
     model_class = models.BertClassifier
@@ -42,7 +42,7 @@ elif args.dataset == 'civilcomments':
 
 optimizer_class = torch.optim.Adam
 
-trials = 30
+trials = 100
 epochs = 10
 split_path = "train_test_splits/LIDC_data_split.csv"
 subclass_path = 'subclass_labels/subclasses.csv'
@@ -64,14 +64,19 @@ gdro_class = GDROLoss
 gdro_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses}
 upweight_class = UpweightLoss
 upweight_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'num_subclasses': num_subclasses}
+mix25_class = ERMGDROLoss
+mix25_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.25}
+mix50_class = ERMGDROLoss
+mix50_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.50}
+mix75_class = ERMGDROLoss
+mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.75}
 
 optimizer_args = {'lr': lr, 'weight_decay': wd}
 
 results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
-for loss_class, loss_args in zip([erm_class, gdro_class],
-                                 [erm_args,  gdro_args]):
-    # for loss_class, loss_args in zip([dynamic_class], [dynamic_args]):
+for loss_class, loss_args in zip([erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
+                                 [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
     fn_name = loss_class.__name__
 
     if verbose:

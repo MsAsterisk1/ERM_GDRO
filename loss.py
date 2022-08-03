@@ -11,12 +11,12 @@ class ERMLoss:
         self.model = model
         self.loss_fn = loss_fn
 
-    def compute_loss(self, preds, y, c):
+    def compute_loss(self, preds, y):
         return self.loss_fn(preds, y)
 
     def __call__(self, minibatch):
         X, y, _ = minibatch
-        return self.compute_loss(self.model(X), y, _)
+        return self.compute_loss(self.model(X), y)
 
 
 class GDROLoss:
@@ -35,6 +35,9 @@ class GDROLoss:
 
     def compute_loss(self, preds, y, c):
         device = y.device
+
+        if self.q.device != device:
+            self.q = self.q.to(device)
 
         losses = torch.zeros(self.num_subclasses).to(device)
         subclass_counts = torch.zeros(self.num_subclasses).to(device)
@@ -61,12 +64,7 @@ class GDROLoss:
 
     def __call__(self, minibatch):
         
-        X,y,c = minibatch
-
-        device = y.device
-
-        if self.q.device != device:
-            self.q = self.q.to(device)
+        X, y, c = minibatch
 
         preds = self.model(X)
 

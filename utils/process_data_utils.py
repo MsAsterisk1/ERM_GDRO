@@ -101,29 +101,7 @@ def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
     return train, cv, test
 
 
-def color_MNIST(images, labels, flip_prob=0.25, rng=np.random.default_rng()):
-    dtype = images.dtype
-    # number of images, number of pixels in image
-    n, size = images.shape
-    images = np.reshape(images, (n, size, 1))
-
-    flip_array = rng.random(n) < flip_prob
-
-    labels = np.logical_xor(labels, flip_array)
-
-    images = np.concatenate(
-        [
-            (labels * images.T).T,
-            ((1 - labels) * images.T).T,
-            np.zeros((n, size, 1), dtype=dtype)
-        ],
-        axis=2
-    )
-
-    return images
-
-
-def get_colored_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
+def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
     train_images = np.fromfile('data/mnist/train-images.idx3-ubyte', dtype='>u1')[16:]
     train_labels = np.fromfile('data/mnist/train-labels.idx1-ubyte', dtype='>u1')[8:]
     test_images = np.fromfile('data/mnist/t10k-images.idx3-ubyte', dtype='>u1')[16:]
@@ -136,9 +114,6 @@ def get_colored_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
     train_labels = (train_labels >= 5)
     test_subclass_labels = test_labels.copy()
     test_labels = (test_labels >= 5)
-
-    train_images = color_MNIST(train_images, train_labels, flip_prob=0.1, rng=rng)
-    test_images = color_MNIST(test_images, test_labels, flip_prob=0.9, rng=rng)
 
     train_dataset = SubclassedDataset(
         torch.from_numpy(train_images).to(device=device, dtype=torch.float),
@@ -165,9 +140,9 @@ def get_colored_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
     return train_dataset, val_dataset, test_dataset
 
 
-def get_colored_MNIST_dataloaders(batch_size, device='cpu', seed=None):
-    train_dataset, val_dataset, test_dataset = get_colored_MNIST_datasets(device=device,
-                                                                          rng=np.random.default_rng(seed))
+def get_MNIST_dataloaders(batch_size, device='cpu', seed=None):
+    train_dataset, val_dataset, test_dataset = get_MNIST_datasets(device=device,
+                                                                  rng=np.random.default_rng(seed))
 
     train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size)
     val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size)
