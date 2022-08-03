@@ -101,8 +101,9 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replaceme
                 if get_loss:
                     #accumulate loss over entire epoch
                     loss += loss_fn(pred, y)
-                    
-            loss /= steps_per_epoch
+            
+            if get_loss:
+                loss /= steps_per_epoch
             subgroup_accuracy = subgroup_correct / num_samples
 
             accuracy /= len(dataloader.dataset)
