@@ -148,12 +148,9 @@ def get_colored_MNIST_dataloaders(batch_size, device='cpu', seed=None):
     remove_frac = 0.95
 
     rng = np.random.default_rng(seed)
-    train_dataset = torch.utils.data.Subset(
-        train_dataset,
-        np.where(
-            (train_dataset.subclasses != remove_digit) | (rng.random(len(train_dataset)) > remove_frac)
-        )
-    )
+    train_dataset = SubclassedDataset(*train_dataset[np.where(
+        (train_dataset.subclasses != remove_digit) | (rng.random(len(train_dataset)) > remove_frac)
+    )])
 
     train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size)
     val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size)
