@@ -28,9 +28,10 @@ class GDROLoss:
     def __init__(self, model, loss_fn, eta, num_subclasses, vector_subclass=False, normalize_loss=False):
         self.model = model
         self.loss_fn = loss_fn
-        self.q = torch.tensor([])
+        self.q = torch.ones(num_subclasses)
+        self.q /= self.q.sum()
         self.eta = eta
-        self.vector_subclass=vector_subclass
+        self.vector_subclass = vector_subclass
         self.num_subclasses = num_subclasses
         self.normalize_loss = normalize_loss
 
@@ -41,9 +42,8 @@ class GDROLoss:
         batch_size = y.shape[0]
         device = y.device
 
-        if len(self.q) == 0:
-            self.q = torch.ones(self.num_subclasses).to(device)
-            self.q /= self.q.sum()
+        if self.q.device != device:
+            self.q = self.q.to(device)
 
         losses = torch.zeros(self.num_subclasses).to(device)
 
