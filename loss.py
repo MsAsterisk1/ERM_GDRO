@@ -11,12 +11,12 @@ class ERMLoss:
         self.model = model
         self.loss_fn = loss_fn
 
-    def __call__(self, minibatch):
-        # minibatch contains one batch of non-subtyped data
-        X, y, _ = minibatch
-        loss = self.loss_fn(self.model(X), y)
+    def compute_loss(self, preds, y, c):
+        return self.loss_fn(preds, y)
 
-        return loss
+    def __call__(self, minibatch):
+        X, y, _ = minibatch
+        return self.compute_loss(self.model(X), y, _)
 
 
 class GDROLoss:
@@ -25,34 +25,19 @@ class GDROLoss:
     See https://arxiv.org/abs/1911.08731 for details on the algorithm
     """
 
-    def __init__(self, model, loss_fn, eta, num_subclasses, vector_subclass=False, normalize_loss=False):
+    def __init__(self, model, loss_fn, eta, num_subclasses, vector_subclass=False):
         self.model = model
         self.loss_fn = loss_fn
-        self.q = torch.ones(num_subclasses)
-        self.q /= self.q.sum()
+        self.q = torch.ones(num_subclasses) / num_subclasses
         self.eta = eta
         self.vector_subclass = vector_subclass
         self.num_subclasses = num_subclasses
-        self.normalize_loss = normalize_loss
 
-    def __call__(self, minibatch):
-        
-        X,y,c = minibatch
-
-        batch_size = y.shape[0]
+    def compute_loss(self, preds, y, c):
         device = y.device
 
-        if self.q.device != device:
-            self.q = self.q.to(device)
-
         losses = torch.zeros(self.num_subclasses).to(device)
-
         subclass_counts = torch.zeros(self.num_subclasses).to(device)
-
-        preds = self.model(X)
-
-        # computes loss
-        # get relative frequency of samples in each subclass
         for subclass in range(self.num_subclasses):
             if self.vector_subclass:
                 subclass_idx = c[:,subclass] == 1
@@ -70,15 +55,22 @@ class GDROLoss:
             self.q *= torch.exp(self.eta * losses.data)
             self.q /= self.q.sum()
 
-        if self.normalize_loss:
-            losses *= subclass_counts
-            loss = torch.dot(losses, self.q)
-            loss /= batch_size
-            loss *= self.num_subclasses
-        else:
-            loss = torch.dot(losses, self.q)
+        loss = torch.dot(losses, self.q)
 
         return loss
+
+    def __call__(self, minibatch):
+        
+        X,y,c = minibatch
+
+        device = y.device
+
+        if self.q.device != device:
+            self.q = self.q.to(device)
+
+        preds = self.model(X)
+
+        return self.compute_loss(preds, y, c)
 
 
 class ERMGDROLoss:
@@ -87,87 +79,33 @@ class ERMGDROLoss:
     Calculates the loss as (t*ERM + (1-t)*gDRO)
     While this class does not have any method to change t internally, the value can be set from outside to produce more dynamic behavior
     """
-    def __init__(self, model, loss_fn, eta, num_subclasses, t):
-        self.eta = eta
+    def __init__(self, model, loss_fn, eta, num_subclasses, t=1, vector_subclass=False):
+        self.erm = ERMLoss(model, loss_fn)
+        self.gdro = GDROLoss(model, loss_fn, eta, num_subclasses, vector_subclass)
         self.model = model
-        self.loss_fn = loss_fn
-        self.q = torch.tensor([])
         self.t = t
-        self.num_subclasses = num_subclasses
+
+    def compute_loss(self, preds, y, c):
+        return self.t * self.erm.compute_loss(preds, y) + (1 - self.t) * self.gdro.compute_loss(preds, y, c)
 
     def __call__(self, minibatch):
-
         X, y, c = minibatch
-
-        batch_size = X.shape[0]
-        device = X.device
-
-        if len(self.q) == 0:
-            self.q = torch.ones(self.num_subclasses).to(device)
-            self.q /= self.q.sum()
-
-        losses = torch.zeros(self.num_subclasses).to(device)
-
-        subclass_counts = torch.zeros(self.num_subclasses).to(device)
-
         preds = self.model(X)
-
-        # computes loss
-        # get relative frequency of samples in each subclass
-        for subclass in range(self.num_subclasses):
-            subclass_idx = c == subclass
-            subclass_counts[subclass] = torch.sum(subclass_idx)
-
-            # only compute loss if there are actually samples in that class
-            if torch.sum(subclass_idx) > 0:
-                losses[subclass] = self.loss_fn(preds[subclass_idx], y[subclass_idx])
-
-        # update q
-        if self.model.training:
-            self.q *= torch.exp(self.eta * losses.data)
-            self.q /= self.q.sum()
-
-        # loss has to be normalized (subclasses scaled by their size) to be comparable to ERM (in which subclasses affect the loss in proportion to their size)
-        gdro_loss = torch.dot(losses, self.q)
-        # gdro_loss /= batch_size
-        # gdro_loss *= self.num_subclasses
-
-        erm_loss = torch.sum(losses * subclass_counts)
-
-        loss = self.t * erm_loss + (1 - self.t) * gdro_loss
-
-        return loss, erm_loss, gdro_loss
+        return self.compute_loss(preds, y, c)
 
 
 class UpweightLoss:
     """
     Loss function which takes a weighted average of the losses over each subclasses, weighted by the inverse of the size of the subclass
     In other words, UpweightLoss upweights the loss of small subclasses as compared to larger ones.
-    Equivalent to gDRO with eta=0 and normalize_loss=False
+    Equivalent to gDRO with eta=0
     """
     def __init__(self, model, loss_fn, num_subclasses):
-        self.model = model
-        self.loss_fn = loss_fn
-        self.num_subclasses = num_subclasses
+        # wraps a GDROLoss with eta=0
+        self.gdro = GDROLoss(model, loss_fn, eta=0, num_subclasses=num_subclasses)
+
+    def compute_loss(self, preds, y, c):
+        return self.gdro.compute_loss(preds, y, c)
 
     def __call__(self, minibatch):
-        X, y, c = minibatch
-
-        device = X.device
-
-        losses = torch.zeros(self.num_subclasses).to(device)
-
-        preds = self.model(X)
-
-        # computes loss
-        # get relative frequency of samples in each subclass
-        for subclass in range(self.num_subclasses):
-            subclass_idx = c == subclass
-
-            # only compute loss if there are actually samples in that class
-            if torch.sum(subclass_idx) > 0:
-                losses[subclass] = self.loss_fn(preds[subclass_idx], y[subclass_idx])
-
-        loss = torch.sum(losses) / self.num_subclasses
-
-        return loss
+        return self.gdro(minibatch)
