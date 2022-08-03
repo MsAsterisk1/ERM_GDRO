@@ -158,7 +158,7 @@ def train_epochs(epochs,
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
-        if q_data:
+        if record and q_data:
             print(len(q_data))
 
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose)
