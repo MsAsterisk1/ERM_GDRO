@@ -4,7 +4,7 @@ import torch
 from loss import GDROLoss
 
 
-def train(dataloader, model, loss_fn, optimizer, verbose=False):
+def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1):
     """
     Train the model for one epoch
     :param dataloader: The dataloader for the training data
@@ -12,7 +12,7 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False):
     :param loss_fn: The loss function to use for training
     :param optimizer: The optimizer to use for training
     :param verbose: Whether to print the average training loss of the epoch
-    :return:
+    :param sub_batches: Number of sub-batches to split a batch into, useful when the full batch can't fit in memory
     """
     model.train()
 
@@ -21,7 +21,10 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False):
     avg_loss = 0
 
     for i in range(steps_per_epoch):
-        loss = loss_fn(next(dataloader))
+        for s in range(sub_batches):
+            # accumulate is True except on the last sub-batch
+            accumulate = s != sub_batches - 1
+            loss = loss_fn(next(dataloader), accumulate=accumulate)
         avg_loss += loss.item()
 
         # Backpropagation
@@ -134,7 +137,8 @@ def train_epochs(epochs,
                  verbose=False,
                  record=False,
                  save_weights_name=None,
-                 num_subclasses=1):
+                 num_subclasses=1,
+                 sub_batches=1):
     """
     Trains the model for a number of epochs and evaluates the model at each epoch
     :param epochs: The number of epochs to train
@@ -160,7 +164,7 @@ def train_epochs(epochs,
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
-        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose)
+        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches)
         if scheduler:
             scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
 
@@ -197,7 +201,8 @@ def run_trials(num_trials,
                scheduler_class=None,
                scheduler_args=None,
                verbose=False,
-               record=False):
+               record=False,
+               sub_batches=1):
     """
     Runs a number of trials
     :param num_trials: The number of trials to run
@@ -253,7 +258,8 @@ def run_trials(num_trials,
                                      scheduler=scheduler,
                                      verbose=verbose,
                                      record=record,
-                                     num_subclasses=num_subclasses
+                                     num_subclasses=num_subclasses,
+                                     sub_batches=sub_batches
                                      )
 
         if record:

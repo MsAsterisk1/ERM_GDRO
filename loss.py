@@ -8,7 +8,7 @@ class ERMLoss:
     """
 
     def __init__(self, model, loss_fn):
-        self.accumulated = torch.tensor(0)
+        self.accumulated = torch.tensor(0.0)
         self.model = model
         self.loss_fn = loss_fn
 
@@ -19,7 +19,7 @@ class ERMLoss:
         loss = self.accumulated
 
         if not accumulate:
-            self.accumulated = torch.tensor(0)
+            self.accumulated = torch.tensor(0.0)
 
         return loss
 
