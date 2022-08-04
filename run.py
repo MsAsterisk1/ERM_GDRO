@@ -20,7 +20,7 @@ args = parser.parse_args()
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 if args.dataset == 'waterbirds':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_waterbirds_dataloaders(batch_size=64, device=device)
+    train_dataloader, val_dataloader, test_dataloader = utils.get_waterbirds_dataloaders(batch_size=8, device=device)
     model_class = models.TransferModel50
     model_args = {'device': device, 'freeze': False}
 
@@ -30,6 +30,7 @@ if args.dataset == 'waterbirds':
     optimizer_class = torch.optim.SGD
     optimizer_args = {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9}
     num_subclasses = 4
+    sub_batches = 1
 
 elif args.dataset == 'mnist':
     train_dataloader, val_dataloader, test_dataloader = utils.get_MNIST_dataloaders(batch_size=1024, device=device,
@@ -42,6 +43,7 @@ elif args.dataset == 'mnist':
     optimizer_class = torch.optim.Adam
     optimizer_args = {'lr': 0.0005, 'weight_decay': 0.005}
     num_subclasses = 10
+    sub_batches = 1
 
 elif args.dataset == 'civilcomments':
     train_dataloader, val_dataloader, test_dataloader = utils.get_CivilComments_DataLoaders(device=device)
@@ -54,6 +56,7 @@ elif args.dataset == 'civilcomments':
     optimizer_class = torch.optim.Adam
     optimizer_args = {'lr': 0.00001, 'weight_decay': 0.01}
     num_subclasses = 18
+    sub_batches = 1
 
 trials = 1
 split_path = "train_test_splits/LIDC_data_split.csv"
@@ -90,11 +93,11 @@ mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasse
 
 results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
-for loss_class, fn_name, loss_args in zip(
-        [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
-        [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
-        [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
-
+# for loss_class, fn_name, loss_args in zip(
+#         [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
+#         [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
+#         [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
+for loss_class, fn_name, loss_args in zip([erm_class, gdro_class], [erm_name, gdro_name], [erm_args, gdro_args]):
     if verbose:
         print(f"Running trials: {fn_name}")
 
@@ -115,7 +118,8 @@ for loss_class, fn_name, loss_args in zip(
         scheduler_args=None,
         verbose=verbose,
         record=True,
-        num_subclasses=num_subclasses
+        num_subclasses=num_subclasses,
+        sub_batches=sub_batches
     )
     results["Accuracies"][fn_name] = accuracies
     results["q"][fn_name] = q_data
