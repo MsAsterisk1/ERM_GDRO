@@ -172,7 +172,7 @@ def train_epochs(epochs,
 
         if save_weights_name is not None:
             print(f'For Cross Val:')
-            _ = evaluate(test_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True, verbose=True)
+            _ = evaluate(val_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True, verbose=True)
             torch.save(model.state_dict(), f'./epoch_{epoch+1}_{save_weights_name}.wt')
 
     if record:
