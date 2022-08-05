@@ -2,7 +2,7 @@ import torch
 import pandas as pd
 import numpy as np
 
-from wilds import get_dataset
+# from wilds import get_dataset
 from torchvision import transforms
 
 from datasets import SubclassedDataset
