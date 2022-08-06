@@ -4,7 +4,7 @@ import torch
 from loss import GDROLoss
 
 
-def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, gradient_clip=None):
+def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, scheduler=None, gradient_clip=None):
     """
     Train the model for one epoch
     :param dataloader: The dataloader for the training data
@@ -35,6 +35,9 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, g
             torch.nn.utils.clip_grad_norm_(model.parameters(),gradient_clip)
 
         optimizer.step()
+
+        if scheduler is not None:
+            scheduler.step()
 
     avg_loss /= steps_per_epoch
 
@@ -169,9 +172,9 @@ def train_epochs(epochs,
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
-        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches, gradient_clip=gradient_clip)
-        if scheduler:
-            scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
+        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches, schueduler=scheduler, gradient_clip=gradient_clip)
+        # if scheduler:
+        #     scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass, verbose=verbose)
