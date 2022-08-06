@@ -172,7 +172,7 @@ def train_epochs(epochs,
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
-        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches, schueduler=scheduler, gradient_clip=gradient_clip)
+        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches, scheduler=scheduler, gradient_clip=gradient_clip)
         # if scheduler:
         #     scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
 
