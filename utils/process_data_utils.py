@@ -11,7 +11,7 @@ from transformers import DistilBertTokenizer
 
 url_CivilComments = 'https://worksheets.codalab.org/rest/bundles/0x8cd3de0634154aeaad2ee6eb96723c6e/contents/blob/all_data_with_identities.csv'
 
-CC_subgroup_cols = ['male', 'female', 'LGBTQ', 'christian', 'muslim', 'other_religion', 'black', 'white']
+CC_subgroup_cols = ['male', 'female', 'LGBTQ', 'christian', 'muslim', 'other_religions', 'black', 'white']
 split_rename = {'train': 0, 'val': 1, 'test': 2}
 
 
