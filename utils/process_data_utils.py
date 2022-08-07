@@ -23,16 +23,17 @@ def get_sampler_weights(subclass_labels):
     '''
 
     subclasses = torch.unique(subclass_labels)
-    subclass_freqs = {}
+    subclass_freqs = []
 
     for subclass in subclasses:
         subclass_counts = sum(subclass_labels == subclass)
-        subclass_freqs[subclass] = [1/subclass_counts]
+        subclass_freqs.append(1/subclass_counts)
 
-    subclass_weights = torch.zeros_like(subclass_labels)
+    subclass_weights = torch.zeros_like(subclass_labels).float()
+    
     for idx, label in enumerate(subclass_labels):
-        subclass_weights[idx] = subclass_freqs[label]
-
+        subclass_weights[idx] = subclass_freqs[int(label)]
+        
     return subclass_weights
 
 def split_stratified(dataset, sizes, rng):
