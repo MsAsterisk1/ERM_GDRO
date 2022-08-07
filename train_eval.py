@@ -145,6 +145,7 @@ def train_epochs(epochs,
                  record=False,
                  save_weights_name=None,
                  num_subclasses=1,
+                 eval_subclasses=None,
                  gradient_clip = None,
                  sub_batches=1):
     """
@@ -167,6 +168,8 @@ def train_epochs(epochs,
         q_data = None
         if isinstance(loss_fn, GDROLoss):
             q_data = loss_fn.q.tolist()
+    if eval_subclasses is None:
+        eval_subclasses = num_subclasses
 
     for epoch in range(epochs):
         if verbose:
@@ -177,14 +180,14 @@ def train_epochs(epochs,
         #     scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
 
         if record:
-            epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass, verbose=verbose)
+            epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=eval_subclasses, vector_subclass=vector_subclass, verbose=verbose)
             accuracies.extend(epoch_accuracies)
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(loss_fn.q.tolist())
 
         if save_weights_name is not None:
             print(f'For Cross Val:')
-            _ = evaluate(val_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True, verbose=True)
+            _ = evaluate(val_dataloader, model, num_subclasses=eval_subclasses, vector_subclass=vector_subclass, get_loss=True, verbose=True)
             torch.save(model.state_dict(), f'./epoch_{epoch+1}_{save_weights_name}.wt')
 
     if record:

@@ -1,3 +1,4 @@
+from re import sub
 import torch
 import pandas as pd
 import numpy as np
@@ -14,6 +15,25 @@ url_CivilComments = 'https://worksheets.codalab.org/rest/bundles/0x8cd3de0634154
 CC_subgroup_cols = ['male', 'female', 'LGBTQ', 'christian', 'muslim', 'other_religions', 'black', 'white']
 split_rename = {'train': 0, 'val': 1, 'test': 2}
 
+
+def get_sampler_weights(subclass_labels):
+    '''
+    Returns a list of weights that allows uniform sampling of dataset
+    by subclasses
+    '''
+
+    subclasses = torch.unique(subclass_labels)
+    subclass_freqs = {}
+
+    for subclass in subclasses:
+        subclass_counts = sum(subclass_labels == subclass)
+        subclass_freqs[subclass] = [1/subclass_counts]
+
+    subclass_weights = torch.zeros_like(subclass_labels)
+    for idx, label in enumerate(subclass_labels):
+        subclass_weights[idx] = subclass_freqs[label]
+
+    return subclass_weights
 
 def split_stratified(dataset, sizes, rng):
     """
@@ -58,7 +78,7 @@ def get_CivilComments_df(csv_file_path=url_CivilComments):
     return CC_df
 
 
-def get_CivilComments_Datasets(CC_df=None, device='cpu'):
+def get_CivilComments_Datasets(CC_df=None):
     if CC_df is None:
         CC_df = get_CivilComments_df()
 
@@ -75,27 +95,35 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
         labels = torch.from_numpy(sub_df['toxicity'].values)
         features = torch.stack((tokens['input_ids'], tokens['attention_mask']), dim=1)
 
-        num_groups = len(CC_subgroup_cols) + 1  # also need the others 'subgroup'
+        #for train, we only group by labels
+        if split == 0:
+            subclasses = labels
+        else:
+            num_groups = len(CC_subgroup_cols) + 1  # also need the others 'subgroup'
+            super_subclasses = torch.from_numpy(sub_df[CC_subgroup_cols + ['others']].values)
+            repeat_labels = labels.unsqueeze(1).repeat(1, num_groups)
 
-        super_subclasses = torch.from_numpy(sub_df[CC_subgroup_cols + ['others']].values)
-        repeat_labels = labels.unsqueeze(1).repeat(1, num_groups)
+            toxic_subclasses = torch.logical_and(super_subclasses, repeat_labels)
+            nontoxic_subclasses = torch.logical_and(super_subclasses, torch.logical_not(repeat_labels))
+            subclasses = torch.cat((toxic_subclasses, nontoxic_subclasses), dim=1).long()
 
-        toxic_subclasses = torch.logical_and(super_subclasses, repeat_labels)
-        nontoxic_subclasses = torch.logical_and(super_subclasses, torch.logical_not(repeat_labels))
-        subclasses = torch.cat((toxic_subclasses, nontoxic_subclasses), dim=1).long()
-
-        datasets.append(SubclassedDataset(features, labels, subclasses, device=device))
+        datasets.append(SubclassedDataset(features, labels, subclasses))
 
     return datasets
 
 
-def get_CivilComments_DataLoaders(CC_df=None, datasets=None, device='cpu'):
+def get_CivilComments_DataLoaders(CC_df=None, datasets=None, gdro=False):
     if datasets is None:
-        datasets = get_CivilComments_Datasets(CC_df=CC_df, device=device)
+        datasets = get_CivilComments_Datasets(CC_df=CC_df)
 
     dataloaders = []
 
-    train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
+    if gdro:
+        subclass_weights = get_sampler_weights(datasets[0].subclasses)
+        train = InfiniteDataLoader(datasets[0], batch_size=16, weights=subclass_weights)
+    else: #ERM
+        train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
+
     cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
     test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
 

@@ -55,10 +55,8 @@ class GDROLoss:
         subclass_counts = self.accumulated[1]
 
         for subclass in range(self.num_subclasses):
-            if self.vector_subclass:
-                subclass_idx = c[:,subclass] == 1
-            else:
-                subclass_idx = c == subclass
+
+            subclass_idx = c == subclass
 
             subclass_counts[subclass] += torch.sum(subclass_idx)
 
