@@ -79,7 +79,7 @@ def get_CivilComments_df(csv_file_path=url_CivilComments):
     return CC_df
 
 
-def get_CivilComments_Datasets(CC_df=None):
+def get_CivilComments_Datasets(CC_df=None, device='cpu'):
     if CC_df is None:
         CC_df = get_CivilComments_df()
 
@@ -99,6 +99,7 @@ def get_CivilComments_Datasets(CC_df=None):
         #for train, we only group by labels
         if split == 0:
             subclasses = labels
+            
         else:
             num_groups = len(CC_subgroup_cols) + 1  # also need the others 'subgroup'
             super_subclasses = torch.from_numpy(sub_df[CC_subgroup_cols + ['others']].values)
@@ -106,8 +107,10 @@ def get_CivilComments_Datasets(CC_df=None):
 
             toxic_subclasses = torch.logical_and(super_subclasses, repeat_labels)
             nontoxic_subclasses = torch.logical_and(super_subclasses, torch.logical_not(repeat_labels))
-            subclasses = torch.cat((toxic_subclasses, nontoxic_subclasses), dim=1).long()
+            subclasses = torch.cat((toxic_subclasses, nontoxic_subclasses), dim=1)
 
+        labels=labels.to(device).long()
+        subclasses=subclasses.to(device).long()
         datasets.append(SubclassedDataset(features, labels, subclasses))
 
     return datasets
