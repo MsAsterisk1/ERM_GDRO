@@ -6,6 +6,8 @@ from train_eval import run_trials
 import pandas as pd
 import os
 import argparse
+from math import ceil
+import transformers
 
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset')
@@ -19,52 +21,75 @@ args = parser.parse_args()
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 if args.dataset == 'waterbirds':
+
+
     train_dataset, val_dataset, test_dataset = utils.get_waterbirds_datasets(device=device)
-    model_class = models.TransferModel50
-    model_args = {'device': device, 'freeze': False}
 
     # From Distributionally Robust Neural Networks
-    eta = 0.01
-    epochs = 300
-    optimizer_class = torch.optim.SGD
-    optimizer_args = {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9}
-    num_subclasses = 4
     batch_size = (32, 32)
-    sub_batches = 1
+    eta = 0.01
+
+
+    run_trials_args = {
+        'train_dataset': train_dataset,
+        'val_dataset': val_dataset,
+        'test_dataset': test_dataset,
+        'model_class': models.TransferModel50,
+        'model_args': {'device': device, 'freeze': False},
+        'epochs': 300,
+        'optimier_class': torch.optim.SGD,
+        'optimier_args': {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9},
+        'num_subclasses': 4,
+    }
+
+
+ 
 
 
 elif args.dataset == 'mnist':
     train_dataset, val_dataset, test_dataset = utils.get_MNIST_datasets(device=device)
-    model_class = models.NeuralNetwork
-    model_args = {'layers': [28 * 28, 256, 64, 10]}
-
-    eta = 0.01
-    epochs = 10
-    optimizer_class = torch.optim.Adam
-    optimizer_args = {'lr': 0.0005, 'weight_decay': 0.005}
-    num_subclasses = 10
     batch_size = (1024, 1024)
-    sub_batches = 1
+    eta = 0.01
+
+    
+    run_trials_args = {
+        'train_dataset': train_dataset,
+        'val_dataset': val_dataset,
+        'test_dataset': test_dataset,
+        'model_class': models.NeuralNetwork,
+        'model_args': {'layers': [28 * 28, 256, 64, 10]},
+        'epochs': 10,
+        'optimier_class': torch.optim.Adam,
+        'optimier_args': {'lr': 0.0005, 'weight_decay': 0.005},
+        'num_subclasses': 10,
+    }
+
 
 elif args.dataset == 'civilcomments':
+    
     train_dataset, val_dataset, test_dataset = utils.get_CivilComments_Datasets(device=device)
-    model_class = models.BertClassifier
-    model_args = {}
+    batch_size = (16, 32)
 
     # From WILDS
-    eta = 0.01
     epochs = 5
-    optimizer_class = torch.optim.AdamW
-    optimizer_args = {'lr': 0.00001, 'weight_decay': 0.01}
-    num_subclasses = 18
-    batch_size = (16, 32)
-    sub_batches = 1
+    num_training_steps = ceil(len(train_dataset) / batch_size[0]) * epochs
+    eta = 0.01
+   
 
-    gradient_clip=1
-
-    scheduler = transformers.get_linear_schedule_with_warmup
-
-    scheduler_args = {'num_warmup_steps':0, 'num_training_steps':num_training_steps}
+    run_trials_args = {
+        'train_dataset': train_dataset,
+        'val_dataset': val_dataset,
+        'test_dataset': test_dataset,
+        'model_class': models.BertClassifier,
+        'model_args': {'device':device},
+        'epochs': 5,
+        'optimier_class': torch.optim.AdamW,
+        'optimier_args': {'lr': 0.00001, 'weight_decay': 0.01},
+        'num_subclasses': 18,
+        'scheduler': transformers.get_linear_schedule_with_warmup,
+        'scheduler_args': {'num_warmup_steps':0, 'num_training_steps':num_training_steps},
+        'gradient_clip': 1,
+    }
 
 
 
@@ -81,6 +106,8 @@ if not os.path.isdir(results_dir):
     os.mkdir(results_dir)
 
 verbose = args.verbose
+
+num_subclasses = run_trials_args['num_subclasses']
 
 subtypes = ["Overall"]
 subtypes.extend(list(range(num_subclasses)))
@@ -120,26 +147,7 @@ for loss_class, fn_name, loss_args in zip(
         reweight_train=reweight_train
     )
 
-    accuracies, q_data, roc_data = run_trials(
-        num_trials=trials,
-        epochs=epochs,
-        train_dataloader=train_dataloader,
-        val_dataloader=val_dataloader,
-        test_dataloader=test_dataloader,
-        model_class=model_class,
-        model_args=model_args,
-        loss_class=loss_class,
-        loss_args=loss_args,
-        optimizer_class=optimizer_class,
-        optimizer_args=optimizer_args,
-        device=device,
-        scheduler_class=None,
-        scheduler_args=None,
-        verbose=verbose,
-        record=True,
-        num_subclasses=num_subclasses,
-        sub_batches=sub_batches
-    )
+    accuracies, q_data, roc_data = run_trials(**run_trials_args)
     results["Accuracies"][fn_name] = accuracies
     results["q"][fn_name] = q_data
     # results["ROC"]["labels"] = roc_data[1].tolist()
