@@ -28,6 +28,7 @@ if args.dataset == 'waterbirds':
     # From Distributionally Robust Neural Networks
     batch_size = (32, 32)
     eta = 0.01
+    num_subclasses = 4
 
 
     run_trials_args = {
@@ -47,6 +48,7 @@ elif args.dataset == 'mnist':
     train_dataset, val_dataset, test_dataset = utils.get_MNIST_datasets(device=device)
     batch_size = (1024, 1024)
     eta = 0.01
+    num_subclasses = 10
 
     
     run_trials_args = {
@@ -60,11 +62,12 @@ elif args.dataset == 'mnist':
 
 
 elif args.dataset == 'civilcomments':
-    
-    print('getting dataset')
     train_dataset, val_dataset, test_dataset = utils.get_CivilComments_Datasets(device=device)
-    print('got dataset')
     batch_size = (16, 32)
+
+    #for gdro only train on labels as classes
+    num_subclasses = 2
+
 
     # From WILDS
     epochs = 5
@@ -87,7 +90,9 @@ elif args.dataset == 'civilcomments':
 
 
 
-trials = 5
+run_trials_args['verbose'] = args.verbose,
+
+trials = 1#5
 run_trials_args['num_trials'] = trials
 split_path = "train_test_splits/LIDC_data_split.csv"
 subclass_path = 'subclass_labels/subclasses.csv'
@@ -101,7 +106,6 @@ if not os.path.isdir(results_dir):
 
 verbose = args.verbose
 
-num_subclasses = run_trials_args['num_subclasses']
 
 subtypes = ["Overall"]
 subtypes.extend(list(range(num_subclasses)))
