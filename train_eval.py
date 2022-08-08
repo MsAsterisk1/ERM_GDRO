@@ -211,6 +211,7 @@ def run_trials(num_trials,
                scheduler_args=None,
                verbose=False,
                record=False,
+               gradient_clip = None,
                sub_batches=1):
     """
     Runs a number of trials
@@ -268,6 +269,7 @@ def run_trials(num_trials,
                                      verbose=verbose,
                                      record=record,
                                      num_subclasses=num_subclasses,
+                                     gradient_clip = gradient_clip,
                                      sub_batches=sub_batches
                                      )
 
