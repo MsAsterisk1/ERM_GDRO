@@ -57,10 +57,8 @@ class GDROLoss:
         subclass_counts = self.accumulated[1]
 
         for subclass in range(self.num_subclasses):
-            if self.vector_subclass:
-                subclass_idx = c[:,subclass] == 1
-            else:
-                subclass_idx = c == subclass
+
+            subclass_idx = c == subclass
 
             subclass_counts[subclass] += torch.sum(subclass_idx)
 
@@ -119,9 +117,9 @@ class UpweightLoss:
     In other words, UpweightLoss upweights the loss of small subclasses as compared to larger ones.
     Equivalent to gDRO with eta=0
     """
-    def __init__(self, model, loss_fn, num_subclasses):
+    def __init__(self, model, loss_fn, num_subclasses, vector_subclass=False):
         # wraps a GDROLoss with eta=0
-        self.gdro = GDROLoss(model, loss_fn, eta=0, num_subclasses=num_subclasses)
+        self.gdro = GDROLoss(model, loss_fn, eta=0, num_subclasses=num_subclasses, vector_subclass=vector_subclass)
 
     def compute_loss(self, preds, y, c, accumulate=False):
         return self.gdro.compute_loss(preds, y, c, accumulate)

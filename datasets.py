@@ -12,7 +12,7 @@ class SubclassedDataset(Dataset):
     Similar to a normal dataset, but getitem returns the subclass label as well as the feature tensor and superclass label
     """
 
-    def __init__(self, features, labels, subclasses, device=None):
+    def __init__(self, features, labels, subclasses):
         '''
         INPUTS:
         args: of the form X, y, c
@@ -20,7 +20,6 @@ class SubclassedDataset(Dataset):
               y is the labels
               and c is the subclass labels
         '''
-        self.device=device
         self.features = features
         self.labels = labels
         self.subclasses = subclasses
@@ -32,12 +31,7 @@ class SubclassedDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-
-
-        if self.device:
-            return self.features[idx].to(self.device), self.labels[idx].to(device=self.device, dtype=torch.long), self.subclasses[idx].to(self.device)
-        else:
-            return self.features[idx], self.labels[idx], self.subclasses[idx]
+        return self.features[idx], self.labels[idx], self.subclasses[idx]
 
 
 class OnDemandImageDataset(Dataset):
