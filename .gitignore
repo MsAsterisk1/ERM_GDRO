@@ -128,8 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Large image dataset
+# Large image datasets
 /data/waterbirds_v1.0/
+/data/celeba/
 
 # model weights
 *.wt
