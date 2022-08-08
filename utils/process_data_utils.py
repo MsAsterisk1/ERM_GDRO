@@ -36,6 +36,7 @@ def get_sampler_weights(subclass_labels):
         
     return subclass_weights
 
+
 def split_stratified(dataset, sizes, rng):
     """
     Shuffle and split a SubclassedDataset into two, stratified so the subclass proportions of each new dataset are as close as
@@ -116,22 +117,22 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
     return datasets
 
 
-def get_CivilComments_DataLoaders(CC_df=None, datasets=None, gdro=False):
-    if datasets is None:
-        datasets = get_CivilComments_Datasets(CC_df=CC_df)
-
-    dataloaders = []
-
-    if gdro:
-        subclass_weights = get_sampler_weights(datasets[0].subclasses)
-        train = InfiniteDataLoader(datasets[0], batch_size=16, weights=subclass_weights)
-    else: #ERM
-        train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
-
-    cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
-    test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
-
-    return train, cv, test
+# def get_CivilComments_DataLoaders(CC_df=None, datasets=None, gdro=False):
+#     if datasets is None:
+#         datasets = get_CivilComments_Datasets(CC_df=CC_df)
+#
+#     dataloaders = []
+#
+#     if gdro:
+#         subclass_weights = get_sampler_weights(datasets[0].subclasses)
+#         train = InfiniteDataLoader(datasets[0], batch_size=16, weights=subclass_weights)
+#     else: #ERM
+#         train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
+#
+#     cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
+#     test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
+#
+#     return train, cv, test
 
 
 def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
@@ -173,15 +174,15 @@ def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
     return train_dataset, val_dataset, test_dataset
 
 
-def get_MNIST_dataloaders(batch_size, device='cpu', seed=None):
-    train_dataset, val_dataset, test_dataset = get_MNIST_datasets(device=device,
-                                                                  rng=np.random.default_rng(seed))
-
-    train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size)
-    val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size)
-    test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=len(test_dataset))
-
-    return train_dataloader, val_dataloader, test_dataloader
+# def get_MNIST_dataloaders(batch_size, device='cpu', seed=None):
+#     train_dataset, val_dataset, test_dataset = get_MNIST_datasets(device=device,
+#                                                                   rng=np.random.default_rng(seed))
+#
+#     train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size)
+#     val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size)
+#     test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=len(test_dataset))
+#
+#     return train_dataloader, val_dataloader, test_dataloader
 
 
 def get_waterbirds_datasets(device='cpu'):
@@ -202,11 +203,48 @@ def get_waterbirds_datasets(device='cpu'):
     return train_dataset, val_dataset, test_dataset
 
 
-def get_waterbirds_dataloaders(batch_size, device='cpu'):
-    train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device)
+# def get_waterbirds_dataloaders(batch_size, device='cpu', reweight_train=False):
+#     train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device)
+#
+#     train_dataloader = InfiniteDataLoader(
+#         train_dataset,
+#         batch_size=batch_size,
+#         weights=get_sampler_weights(train_dataset.subclasses) if reweight_train else None
+#     )
+#     val_dataloader = InfiniteDataLoader(
+#         val_dataset,
+#         batch_size=batch_size
+#     )
+#     test_dataloader = InfiniteDataLoader(
+#         test_dataset,
+#         replacement=False,
+#         batch_size=batch_size
+#     )
+#
+#     return train_dataloader, val_dataloader, test_dataloader
 
-    train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size)
-    val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size)
-    test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=batch_size)
+
+def get_dataloaders(datasets, batch_size, reweight_train=False):
+    train_dataset, val_dataset, test_dataset = datasets
+
+    train_dataloader = InfiniteDataLoader(
+        train_dataset,
+        batch_size=batch_size[0],
+        weights=get_sampler_weights(train_dataset.subclasses) if reweight_train else None,
+        replacement=reweight_train,
+        drop_last=reweight_train
+    )
+    val_dataloader = InfiniteDataLoader(
+        val_dataset,
+        batch_size=batch_size[1],
+        replacement=False,
+        drop_last=False
+    )
+    test_dataloader = InfiniteDataLoader(
+        test_dataset,
+        batch_size=batch_size[1],
+        replacement=False,
+        drop_last=False
+    )
 
     return train_dataloader, val_dataloader, test_dataloader

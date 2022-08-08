@@ -19,22 +19,22 @@ args = parser.parse_args()
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 if args.dataset == 'waterbirds':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_waterbirds_dataloaders(batch_size=32, device=device)
+    train_dataset, val_dataset, test_dataset = utils.get_waterbirds_datasets(device=device)
     model_class = models.TransferModel50
     model_args = {'device': device, 'freeze': False}
 
     # From Distributionally Robust Neural Networks
     eta = 0.01
-    epochs = 1
+    epochs = 300
     optimizer_class = torch.optim.SGD
     optimizer_args = {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9}
     num_subclasses = 4
+    batch_size = (32, 32)
     sub_batches = 1
 
 
 elif args.dataset == 'mnist':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_MNIST_dataloaders(batch_size=1024, device=device,
-                                                                                    seed=42)
+    train_dataset, val_dataset, test_dataset = utils.get_MNIST_datasets(device=device)
     model_class = models.NeuralNetwork
     model_args = {'layers': [28 * 28, 256, 64, 10]}
 
@@ -43,10 +43,11 @@ elif args.dataset == 'mnist':
     optimizer_class = torch.optim.Adam
     optimizer_args = {'lr': 0.0005, 'weight_decay': 0.005}
     num_subclasses = 10
+    batch_size = (1024, 1024)
     sub_batches = 1
 
 elif args.dataset == 'civilcomments':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_CivilComments_DataLoaders(device=device)
+    train_dataset, val_dataset, test_dataset = utils.get_CivilComments_Datasets(device=device)
     model_class = models.BertClassifier
     model_args = {}
 
@@ -56,6 +57,7 @@ elif args.dataset == 'civilcomments':
     optimizer_class = torch.optim.AdamW
     optimizer_args = {'lr': 0.00001, 'weight_decay': 0.01}
     num_subclasses = 18
+    batch_size = (16, 32)
     sub_batches = 1
 
     gradient_clip=1
@@ -66,7 +68,8 @@ elif args.dataset == 'civilcomments':
 
 
 
-trials = 1
+
+trials = 5
 split_path = "train_test_splits/LIDC_data_split.csv"
 subclass_path = 'subclass_labels/subclasses.csv'
 feature_path = 'LIDC_20130817_AllFeatures2D_MaxSlicePerNodule_inLineRatings.csv'
@@ -109,6 +112,13 @@ for loss_class, fn_name, loss_args in zip(
         [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
     if verbose:
         print(f"Running trials: {fn_name}")
+
+    reweight_train = loss_class != erm_class
+    train_dataloader, val_dataloader, test_dataloader, = utils.get_dataloaders(
+        (train_dataset, val_dataset, test_dataset),
+        batch_size=batch_size,
+        reweight_train=reweight_train
+    )
 
     accuracies, q_data, roc_data = run_trials(
         num_trials=trials,

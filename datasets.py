@@ -54,6 +54,12 @@ class OnDemandImageDataset(Dataset):
         self.transform = transform
         self.device = device
 
+        # column 2: image label
+        self.labels = torch.LongTensor(self.metadata.iloc[:, 2].values).squeeze().to(self.device)
+        # column 4 contains the confounding label, which is combined with column 2 to get the subclass
+        self.subclasses = torch.LongTensor(2 * self.metadata.iloc[:, 2].values + self.metadata.iloc[:, 4].values).squeeze().to(
+            self.device)
+
     def __len__(self):
         return len(self.metadata)
 
@@ -65,11 +71,7 @@ class OnDemandImageDataset(Dataset):
         img_path = self.metadata.iloc[idx, 1]
         img_tensor = self.transform(Image.open(self.root_dir + img_path)).squeeze().to(self.device)
 
-        # column 2: image label
-        label = torch.LongTensor([self.metadata.iloc[idx, 2]]).squeeze().to(self.device)
-
-        # column 4 contains the confounding label, which is combined with column 2 to get the subclass
-        subclass = torch.LongTensor([2 * self.metadata.iloc[idx, 2] + self.metadata.iloc[idx, 4]]).squeeze().to(
-            self.device)
+        label = self.labels[idx]
+        subclass = self.subclasses[idx]
 
         return img_tensor, label, subclass
