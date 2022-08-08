@@ -61,7 +61,9 @@ elif args.dataset == 'mnist':
 
 elif args.dataset == 'civilcomments':
     
+    print('getting dataset')
     train_dataset, val_dataset, test_dataset = utils.get_CivilComments_Datasets(device=device)
+    print('got dataset')
     batch_size = (16, 32)
 
     # From WILDS
@@ -77,15 +79,16 @@ elif args.dataset == 'civilcomments':
         'optimizer_class': torch.optim.AdamW,
         'optimizer_args': {'lr': 0.00001, 'weight_decay': 0.01},
         'num_subclasses': 18,
-        'scheduler': transformers.get_linear_schedule_with_warmup,
+        'scheduler_class': transformers.get_linear_schedule_with_warmup,
         'scheduler_args': {'num_warmup_steps':0, 'num_training_steps':num_training_steps},
         'gradient_clip': 1,
+        'vector_subclass':True
     }
 
 
 
-
 trials = 5
+run_trials_args['num_trials'] = trials
 split_path = "train_test_splits/LIDC_data_split.csv"
 subclass_path = 'subclass_labels/subclasses.csv'
 feature_path = 'LIDC_20130817_AllFeatures2D_MaxSlicePerNodule_inLineRatings.csv'
@@ -137,6 +140,9 @@ for loss_class, fn_name, loss_args in zip(
         batch_size=batch_size,
         reweight_train=reweight_train
     )
+
+    run_trials_args['loss_class'] = loss_class
+    run_trials_args['loss_args'] = loss_args
 
     run_trials_args['train_dataloader'] = train_dataloader
     run_trials_args['val_dataloader'] = val_dataloader
