@@ -205,7 +205,6 @@ def run_trials(num_trials,
                loss_args,
                optimizer_class,
                optimizer_args,
-               device='cpu',
                num_subclasses=1,
                scheduler_class=None,
                scheduler_args=None,
@@ -248,7 +247,7 @@ def run_trials(num_trials,
         if verbose:
             print(f"Trial {n + 1}/{num_trials}")
 
-        model = model_class(**model_args).to(device)
+        model = model_class(**model_args)
         loss_args['model'] = model
         loss_fn = loss_class(**loss_args)
         optimizer_args['params'] = model.parameters()
