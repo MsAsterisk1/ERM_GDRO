@@ -25,6 +25,7 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1):
             # accumulate is True except on the last sub-batch
             accumulate = s != sub_batches - 1
             loss = loss_fn(next(dataloader), accumulate=accumulate)
+        loss /= sub_batches
         avg_loss += loss.item()
 
         # Backpropagation
@@ -269,20 +270,20 @@ def run_trials(num_trials,
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(trial_q_data)
 
-            with torch.no_grad():
-                X = test_dataloader.dataset.features
-                if len(X) == 1:
-                    X = X[0]
-                preds = model(X)
-                probabilities = torch.nn.functional.softmax(preds, dim=1)[:, 1]
-                if roc_data[0] is None:
-                    roc_data[0] = probabilities
-                else:
-                    roc_data[0] += probabilities
-    if record:
-        roc_data[0] /= num_trials
-        labels = test_dataloader.dataset.labels
-        roc_data[1] = labels
+            # with torch.no_grad():
+                # X = test_dataloader.dataset.features
+                # if len(X) == 1:
+                #     X = X[0]
+                # preds = model(X)
+                # probabilities = torch.nn.functional.softmax(preds, dim=1)[:, 1]
+                # if roc_data[0] is None:
+                #     roc_data[0] = probabilities
+                # else:
+                #     roc_data[0] += probabilities
+    # if record:
+        # roc_data[0] /= num_trials
+        # labels = test_dataloader.dataset.labels
+        # roc_data[1] = labels
 
     if record:
         return accuracies, q_data, roc_data

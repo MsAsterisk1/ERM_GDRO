@@ -4,7 +4,6 @@ import models
 import utils.process_data_utils as utils
 from train_eval import run_trials
 import pandas as pd
-from datetime import datetime
 import os
 import argparse
 
@@ -20,13 +19,13 @@ args = parser.parse_args()
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 if args.dataset == 'waterbirds':
-    train_dataloader, val_dataloader, test_dataloader = utils.get_waterbirds_dataloaders(batch_size=8, device=device)
+    train_dataloader, val_dataloader, test_dataloader = utils.get_waterbirds_dataloaders(batch_size=32, device=device)
     model_class = models.TransferModel50
     model_args = {'device': device, 'freeze': False}
 
     # From Distributionally Robust Neural Networks
     eta = 0.01
-    epochs = 300
+    epochs = 1
     optimizer_class = torch.optim.SGD
     optimizer_args = {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9}
     num_subclasses = 4
@@ -64,8 +63,10 @@ subclass_path = 'subclass_labels/subclasses.csv'
 feature_path = 'LIDC_20130817_AllFeatures2D_MaxSlicePerNodule_inLineRatings.csv'
 
 results_root_dir = 'test_results/'
-
 test_name = args.test_name
+results_dir = results_root_dir + f'{test_name}/'
+if not os.path.isdir(results_dir):
+    os.mkdir(results_dir)
 
 verbose = args.verbose
 
@@ -93,11 +94,10 @@ mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasse
 
 results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
-# for loss_class, fn_name, loss_args in zip(
-#         [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
-#         [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
-#         [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
-for loss_class, fn_name, loss_args in zip([erm_class, gdro_class], [erm_name, gdro_name], [erm_args, gdro_args]):
+for loss_class, fn_name, loss_args in zip(
+        [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
+        [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
+        [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
     if verbose:
         print(f"Running trials: {fn_name}")
 
@@ -123,30 +123,25 @@ for loss_class, fn_name, loss_args in zip([erm_class, gdro_class], [erm_name, gd
     )
     results["Accuracies"][fn_name] = accuracies
     results["q"][fn_name] = q_data
-    results["ROC"]["labels"] = roc_data[1].tolist()
-    results["ROC"][fn_name] = roc_data[0].tolist()
+    # results["ROC"]["labels"] = roc_data[1].tolist()
+    # results["ROC"][fn_name] = roc_data[0].tolist()
 
-accuracies_df = pd.DataFrame(
-    results["Accuracies"],
-    index=pd.MultiIndex.from_product(
-        [range(trials), range(epochs + 1), subtypes],
-        names=["trial", "epoch", "subtype"]
+    accuracies_df = pd.DataFrame(
+        results["Accuracies"],
+        index=pd.MultiIndex.from_product(
+            [range(trials), range(epochs + 1), subtypes],
+            names=["trial", "epoch", "subtype"]
+        )
     )
-)
-q_df = pd.DataFrame(
-    results["q"],
-    index=pd.MultiIndex.from_product(
-        [range(trials), range(epochs + 1), subtypes[1:]],
-        names=["trial", "epoch", "subtype"]
+    q_df = pd.DataFrame(
+        results["q"],
+        index=pd.MultiIndex.from_product(
+            [range(trials), range(epochs + 1), subtypes[1:]],
+            names=["trial", "epoch", "subtype"]
+        )
     )
-)
-roc_df = pd.DataFrame(results["ROC"])
+    # roc_df = pd.DataFrame(results["ROC"])
 
-now = datetime.now()
-
-results_dir = results_root_dir + f'{test_name}/'
-os.mkdir(results_dir)
-
-accuracies_df.to_csv(results_dir + f'accuracies.csv')
-q_df.to_csv(results_dir + f'q.csv')
-roc_df.to_csv(results_dir + f'roc.csv', index=False)
+    accuracies_df.to_csv(results_dir + f'accuracies.csv')
+    q_df.to_csv(results_dir + f'q.csv')
+    # roc_df.to_csv(results_dir + f'roc.csv', index=False)

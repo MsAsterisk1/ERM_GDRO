@@ -13,7 +13,8 @@ class ERMLoss:
         self.loss_fn = loss_fn
 
     def compute_loss(self, preds, y, accumulate=False):
-        self.accumulated = self.accumulated.to(y.device)
+        if self.accumulated.device != y.device:
+            self.accumulated = self.accumulated.to(y.device)
         self.accumulated += self.loss_fn(preds, y)
 
         loss = self.accumulated
@@ -25,6 +26,7 @@ class ERMLoss:
 
     def __call__(self, minibatch, accumulate=False):
         X, y, _ = minibatch
+
         return self.compute_loss(self.model(X), y, accumulate)
 
 
