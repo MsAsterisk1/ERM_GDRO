@@ -31,14 +31,11 @@ if args.dataset == 'waterbirds':
 
 
     run_trials_args = {
-        'train_dataset': train_dataset,
-        'val_dataset': val_dataset,
-        'test_dataset': test_dataset,
         'model_class': models.TransferModel50,
         'model_args': {'device': device, 'freeze': False},
         'epochs': 300,
-        'optimier_class': torch.optim.SGD,
-        'optimier_args': {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9},
+        'optimizer_class': torch.optim.SGD,
+        'optimizer_args': {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9},
         'num_subclasses': 4,
     }
 
@@ -53,14 +50,11 @@ elif args.dataset == 'mnist':
 
     
     run_trials_args = {
-        'train_dataset': train_dataset,
-        'val_dataset': val_dataset,
-        'test_dataset': test_dataset,
         'model_class': models.NeuralNetwork,
         'model_args': {'layers': [28 * 28, 256, 64, 10]},
         'epochs': 10,
-        'optimier_class': torch.optim.Adam,
-        'optimier_args': {'lr': 0.0005, 'weight_decay': 0.005},
+        'optimizer_class': torch.optim.Adam,
+        'optimizer_args': {'lr': 0.0005, 'weight_decay': 0.005},
         'num_subclasses': 10,
     }
 
@@ -77,14 +71,11 @@ elif args.dataset == 'civilcomments':
    
 
     run_trials_args = {
-        'train_dataset': train_dataset,
-        'val_dataset': val_dataset,
-        'test_dataset': test_dataset,
         'model_class': models.BertClassifier,
         'model_args': {'device':device},
         'epochs': 5,
-        'optimier_class': torch.optim.AdamW,
-        'optimier_args': {'lr': 0.00001, 'weight_decay': 0.01},
+        'optimizer_class': torch.optim.AdamW,
+        'optimizer_args': {'lr': 0.00001, 'weight_decay': 0.01},
         'num_subclasses': 18,
         'scheduler': transformers.get_linear_schedule_with_warmup,
         'scheduler_args': {'num_warmup_steps':0, 'num_training_steps':num_training_steps},
@@ -146,6 +137,12 @@ for loss_class, fn_name, loss_args in zip(
         batch_size=batch_size,
         reweight_train=reweight_train
     )
+
+    run_trials_args['train_dataloader'] = train_dataloader
+    run_trials_args['val_dataloader'] = val_dataloader
+    run_trials_args['test_dataloader'] = test_dataloader
+
+
 
     accuracies, q_data, roc_data = run_trials(**run_trials_args)
     results["Accuracies"][fn_name] = accuracies
