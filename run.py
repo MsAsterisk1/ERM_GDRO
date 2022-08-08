@@ -31,6 +31,7 @@ if args.dataset == 'waterbirds':
     num_subclasses = 4
     sub_batches = 1
 
+
 elif args.dataset == 'mnist':
     train_dataloader, val_dataloader, test_dataloader = utils.get_MNIST_dataloaders(batch_size=1024, device=device,
                                                                                     seed=42)
@@ -52,10 +53,18 @@ elif args.dataset == 'civilcomments':
     # From WILDS
     eta = 0.01
     epochs = 5
-    optimizer_class = torch.optim.Adam
+    optimizer_class = torch.optim.AdamW
     optimizer_args = {'lr': 0.00001, 'weight_decay': 0.01}
     num_subclasses = 18
     sub_batches = 1
+
+    gradient_clip=1
+
+    scheduler = transformers.get_linear_schedule_with_warmup
+
+    scheduler_args = {'num_warmup_steps':0, 'num_training_steps':num_training_steps}
+
+
 
 trials = 1
 split_path = "train_test_splits/LIDC_data_split.csv"
