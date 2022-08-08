@@ -212,7 +212,8 @@ def run_trials(num_trials,
                verbose=False,
                record=False,
                gradient_clip = None,
-               sub_batches=1):
+               sub_batches=1,
+               vector_subclass=False):
     """
     Runs a number of trials
     :param num_trials: The number of trials to run
@@ -270,7 +271,8 @@ def run_trials(num_trials,
                                      record=record,
                                      num_subclasses=num_subclasses,
                                      gradient_clip = gradient_clip,
-                                     sub_batches=sub_batches
+                                     sub_batches=sub_batches,
+                                     vector_subclass=vector_subclass
                                      )
 
         if record:
