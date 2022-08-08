@@ -9,13 +9,13 @@ class NeuralNetwork(nn.Module):
     The first argument of the constructor should be the number of input features, and the last should be the number of outputs
     """
     # layers = int layer sizes, starting with the input layer
-    def __init__(self, layers):
+    def __init__(self, layers, device='cpu'):
         super(NeuralNetwork, self).__init__()
         self.flatten = nn.Flatten()
 
         stack = []
         for i in range(len(layers) - 1):
-            stack.extend([nn.Linear(layers[i], layers[i + 1]), nn.ReLU()])
+            stack.extend([nn.Linear(layers[i], layers[i + 1], device=device), nn.ReLU()])
 
         self.linear_relu_stack = nn.Sequential(*stack[:-1])
 
