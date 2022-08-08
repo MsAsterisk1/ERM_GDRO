@@ -258,6 +258,9 @@ def run_trials(num_trials,
         else:
             scheduler = None
 
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         trial_results = train_epochs(epochs=epochs,
                                      train_dataloader=train_dataloader,
                                      val_dataloader=val_dataloader,
@@ -280,21 +283,6 @@ def run_trials(num_trials,
 
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(trial_q_data)
-
-            # with torch.no_grad():
-                # X = test_dataloader.dataset.features
-                # if len(X) == 1:
-                #     X = X[0]
-                # preds = model(X)
-                # probabilities = torch.nn.functional.softmax(preds, dim=1)[:, 1]
-                # if roc_data[0] is None:
-                #     roc_data[0] = probabilities
-                # else:
-                #     roc_data[0] += probabilities
-    # if record:
-        # roc_data[0] /= num_trials
-        # labels = test_dataloader.dataset.labels
-        # roc_data[1] = labels
 
     if record:
         return accuracies, q_data, roc_data

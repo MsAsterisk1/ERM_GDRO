@@ -90,9 +90,11 @@ elif args.dataset == 'civilcomments':
 
 
 
-run_trials_args['verbose'] = args.verbose,
+run_trials_args['verbose'] = args.verbose
+run_trials_args['record'] = True
 
-trials = 1#5
+
+trials = 5
 run_trials_args['num_trials'] = trials
 split_path = "train_test_splits/LIDC_data_split.csv"
 subclass_path = 'subclass_labels/subclasses.csv'
@@ -108,7 +110,7 @@ verbose = args.verbose
 
 
 subtypes = ["Overall"]
-subtypes.extend(list(range(num_subclasses)))
+subtypes.extend(list(range(run_trials_args['num_subclasses'])))
 
 erm_class = ERMLoss
 erm_name = "ERMLoss"
@@ -145,6 +147,8 @@ for loss_class, fn_name, loss_args in zip(
         reweight_train=reweight_train
     )
 
+   
+
     run_trials_args['loss_class'] = loss_class
     run_trials_args['loss_args'] = loss_args
 
@@ -154,11 +158,10 @@ for loss_class, fn_name, loss_args in zip(
 
 
 
-    accuracies, q_data, roc_data = run_trials(**run_trials_args)
+    accuracies, q_data, _ = run_trials(**run_trials_args)
     results["Accuracies"][fn_name] = accuracies
     results["q"][fn_name] = q_data
-    # results["ROC"]["labels"] = roc_data[1].tolist()
-    # results["ROC"][fn_name] = roc_data[0].tolist()
+
 
     accuracies_df = pd.DataFrame(
         results["Accuracies"],
@@ -167,15 +170,13 @@ for loss_class, fn_name, loss_args in zip(
             names=["trial", "epoch", "subtype"]
         )
     )
-    q_df = pd.DataFrame(
-        results["q"],
-        index=pd.MultiIndex.from_product(
-            [range(trials), range(epochs + 1), subtypes[1:]],
-            names=["trial", "epoch", "subtype"]
-        )
-    )
-    # roc_df = pd.DataFrame(results["ROC"])
+    # q_df = pd.DataFrame(
+    #     results["q"],
+    #     index=pd.MultiIndex.from_product(
+    #         [range(trials), range(epochs + 1), subtypes[1:]],
+    #         names=["trial", "epoch", "subtype"]
+    #     )
+    # )
 
     accuracies_df.to_csv(results_dir + f'accuracies.csv')
-    q_df.to_csv(results_dir + f'q.csv')
-    # roc_df.to_csv(results_dir + f'roc.csv', index=False)
+    # q_df.to_csv(results_dir + f'q.csv')
