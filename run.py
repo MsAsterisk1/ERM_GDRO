@@ -88,17 +88,11 @@ elif args.dataset == 'civilcomments':
         'vector_subclass':True
     }
 
-
+trials = 5
+run_trials_args['num_trials'] = trials
 
 run_trials_args['verbose'] = args.verbose
 run_trials_args['record'] = True
-
-
-trials = 5
-run_trials_args['num_trials'] = trials
-split_path = "train_test_splits/LIDC_data_split.csv"
-subclass_path = 'subclass_labels/subclasses.csv'
-feature_path = 'LIDC_20130817_AllFeatures2D_MaxSlicePerNodule_inLineRatings.csv'
 
 results_root_dir = 'test_results/'
 test_name = args.test_name
@@ -131,12 +125,12 @@ mix75_class = ERMGDROLoss
 mix75_name = "MixLoss75"
 mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.75}
 
-results = {"Accuracies": {}, "q": {}, "ROC": {}}
+# results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
 for loss_class, fn_name, loss_args in zip(
-        [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
-        [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
-        [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
+        [erm_class, ],#gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
+        [erm_name,  ],#gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
+        [erm_args,  ]):#gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
     if verbose:
         print(f"Running trials: {fn_name}")
 
@@ -158,13 +152,13 @@ for loss_class, fn_name, loss_args in zip(
 
 
 
-    accuracies, q_data, _ = run_trials(**run_trials_args)
-    results["Accuracies"][fn_name] = accuracies
-    results["q"][fn_name] = q_data
+    accuracies = run_trials(**run_trials_args)[0]
+    # results["Accuracies"][fn_name] = accuracies
 
 
     accuracies_df = pd.DataFrame(
-        results["Accuracies"],
+        # results["Accuracies"],
+        accuracies,
         index=pd.MultiIndex.from_product(
             [range(trials), range(epochs + 1), subtypes],
             names=["trial", "epoch", "subtype"]
