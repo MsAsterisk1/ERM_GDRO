@@ -49,10 +49,14 @@ class OnDemandImageDataset(Dataset):
         :param device to move tensors to as they are loaded
         """
 
-        self.metadata = metadata
         self.root_dir = root_dir
         self.transform = transform
         self.device = device
+
+        self.features = []
+        for i in range(len(metadata)):
+            img_path = metadata.iloc[idx, 1]
+            self.features.append(Image.open(self.root_dir + img_path))
 
         # column 2: image label
         self.labels = torch.LongTensor(self.metadata.iloc[:, 2].values).squeeze().to(self.device)
@@ -68,8 +72,8 @@ class OnDemandImageDataset(Dataset):
             idx = idx.tolist()
 
         # column 1: image path
-        img_path = self.metadata.iloc[idx, 1]
-        img_tensor = self.transform(Image.open(self.root_dir + img_path)).squeeze().to(self.device)
+        # img_path = self.metadata.iloc[idx, 1]
+        img_tensor = self.transform(self.features[idx]).squeeze().to(self.device)
 
         label = self.labels[idx]
         subclass = self.subclasses[idx]
