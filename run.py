@@ -76,7 +76,7 @@ elif args.dataset == 'civilcomments':
         'vector_subclass':True
     }
 
-trials = 1
+trials = 5
 run_trials_args['num_trials'] = trials
 
 run_trials_args['verbose'] = args.verbose
@@ -116,12 +116,16 @@ mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasse
 # results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
 for loss_class, fn_name, loss_args in zip(
-        [mix25_class, mix50_class, mix75_class, erm_class],
-        [mix25_name,  mix50_name,  mix75_name,  upweight_name],
-        [mix25_args,  mix50_args,  mix75_args,  erm_args]):
+        # [mix25_class, mix50_class, mix75_class, erm_class],
+        # [mix25_name,  mix50_name,  mix75_name,  upweight_name],
+        # [mix25_args,  mix50_args,  mix75_args,  erm_args]):
         # [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
         # [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
         # [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
+        [gdro_class,],
+        [gdro_name,],
+        [gdro_args,]):
+
     if verbose:
         print(f"Running trials: {fn_name}")
 
