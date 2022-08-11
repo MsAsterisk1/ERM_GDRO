@@ -36,13 +36,12 @@ class GDROLoss:
     See https://arxiv.org/abs/1911.08731 for details on the algorithm
     """
 
-    def __init__(self, model, loss_fn, eta, num_subclasses, vector_subclass=False):
+    def __init__(self, model, loss_fn, eta, num_subclasses):
         self.accumulated = [torch.zeros(num_subclasses), torch.zeros(num_subclasses)]
         self.model = model
         self.loss_fn = loss_fn
         self.q = torch.ones(num_subclasses) / num_subclasses
         self.eta = eta
-        self.vector_subclass = vector_subclass
         self.num_subclasses = num_subclasses
 
     def compute_loss(self, preds, y, c, accumulate=False):
