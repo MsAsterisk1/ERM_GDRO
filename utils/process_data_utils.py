@@ -118,22 +118,22 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
     return datasets
 
 
-# def get_CivilComments_DataLoaders(CC_df=None, datasets=None, gdro=False):
-#     if datasets is None:
-#         datasets = get_CivilComments_Datasets(CC_df=CC_df)
-#
-#     dataloaders = []
-#
-#     if gdro:
-#         subclass_weights = get_sampler_weights(datasets[0].subclasses)
-#         train = InfiniteDataLoader(datasets[0], batch_size=16, weights=subclass_weights)
-#     else: #ERM
-#         train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
-#
-#     cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
-#     test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
-#
-#     return train, cv, test
+def get_CivilComments_DataLoaders(CC_df=None, datasets=None, gdro=False):
+    if datasets is None:
+        datasets = get_CivilComments_Datasets(CC_df=CC_df)
+
+    dataloaders = []
+
+    if gdro:
+        subclass_weights = get_sampler_weights(datasets[0].subclasses)
+        train = InfiniteDataLoader(datasets[0], batch_size=16, weights=subclass_weights)
+    else: #ERM
+        train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
+
+    cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
+    test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
+
+    return train, cv, test
 
 
 def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):

@@ -77,18 +77,28 @@ class ERMGDROLoss:
     Calculates the loss as (t*ERM + (1-t)*gDRO)
     While this class does not have any method to change t internally, the value can be set from outside to produce more dynamic behavior
     """
-    def __init__(self, model, loss_fn, eta, num_subclasses, t=1, vector_subclass=False):
+    def __init__(self, model, loss_fn, eta, num_subclasses, t=1, vector_subclass=False, partitioned=False):
         self.erm = ERMLoss(model, loss_fn)
         self.gdro = GDROLoss(model, loss_fn, eta, num_subclasses, vector_subclass)
         self.model = model
         self.t = t
+        self.partitioned=partitioned
 
     def compute_loss(self, preds, y, c):
-        return self.t * self.erm.compute_loss(preds, y) + (1 - self.t) * self.gdro.compute_loss(preds, y, c)
+        
+        if self.partitioned:
+            return self.t * self.erm.compute_loss(preds[0], y[0]) + (1 - self.t) * self.gdro.compute_loss(preds[1], y[1], c[1])
+        else:  
+            return self.t * self.erm.compute_loss(preds, y) + (1 - self.t) * self.gdro.compute_loss(preds, y, c)
 
     def __call__(self, minibatch):
         X, y, c = minibatch
-        preds = self.model(X)
+
+        if self.partitioned:
+            preds = (self.model(X[0]), self.model(X[1]))
+        else:
+            preds = self.model(X)
+
         return self.compute_loss(preds, y, c)
 
 
