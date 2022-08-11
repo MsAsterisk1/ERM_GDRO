@@ -82,7 +82,7 @@ class ERMGDROLoss:
         self.gdro = GDROLoss(model, loss_fn, eta, num_subclasses, vector_subclass)
         self.model = model
         self.t = t
-        self.partitioned=partitioned
+        self.partitioned = partitioned
 
     def compute_loss(self, preds, y, c):
         
