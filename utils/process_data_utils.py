@@ -7,7 +7,7 @@ import numpy as np
 from torchvision import transforms
 
 from datasets import SubclassedDataset, OnDemandImageDataset, SubDataset
-from dataloaders import InfiniteDataLoader
+from dataloaders import InfiniteDataLoader, PartitionedDataLoader
 from transformers import DistilBertTokenizer
 
 url_CivilComments = 'https://worksheets.codalab.org/rest/bundles/0x8cd3de0634154aeaad2ee6eb96723c6e/contents/blob/all_data_with_identities.csv'
@@ -269,8 +269,16 @@ def split_dataset(dataset, proportion=0.5, seed=None):
 
 
 
-def get_partitioned_dataloaders(datasets, batch_size, reweight_train=False, proportion=0.5, seed=None):
-    train_dataset, val_dataset, test_dataset = datasets
-    train_dataset0, train_dataset1 = split_dataset(train_dataset, proportion=proportion, seed=seed)
+def get_partitioned_dataloader(dataset, batch_size, reweight_train=False, proportion=0.5, seed=None):
+   
+    dataset0, dataset1 = split_dataset(dataset, proportion=proportion, seed=seed)
 
-    train_dataloader = 
+    dataloader = PartitionedDataLoader(dataset0, batch_size//2, 
+                                       dataset1, batch_size//2,
+                                       replacement0=False, drop_last0=False,
+                                       replacement1=True, drop_last1=True, 
+                                       weights1 = get_sampler_weights(dataset1.subclasses))
+                                       
+    return dataloader
+
+
