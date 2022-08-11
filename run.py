@@ -22,7 +22,6 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 if args.dataset == 'waterbirds':
 
-
     train_dataset, val_dataset, test_dataset = utils.get_waterbirds_datasets(device=device)
 
     # From Distributionally Robust Neural Networks
@@ -30,27 +29,20 @@ if args.dataset == 'waterbirds':
     eta = 0.01
     num_subclasses = 4
 
-
     run_trials_args = {
         'model_class': models.TransferModel50,
         'model_args': {'device': device, 'freeze': False},
-        'epochs': 300,
+        'epochs': 1,
         'optimizer_class': torch.optim.SGD,
         'optimizer_args': {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9},
         'num_subclasses': 4,
     }
-
-
- 
-
-
 elif args.dataset == 'mnist':
     train_dataset, val_dataset, test_dataset = utils.get_MNIST_datasets(device=device)
     batch_size = (1024, 1024)
     eta = 0.01
     num_subclasses = 10
 
-    
     run_trials_args = {
         'model_class': models.NeuralNetwork,
         'model_args': {'layers': [28 * 28, 256, 64, 10]},
@@ -59,21 +51,17 @@ elif args.dataset == 'mnist':
         'optimizer_args': {'lr': 0.0005, 'weight_decay': 0.005},
         'num_subclasses': 10,
     }
-
-
 elif args.dataset == 'civilcomments':
     train_dataset, val_dataset, test_dataset = utils.get_CivilComments_Datasets(device=device)
     batch_size = (16, 32)
 
-    #for gdro only train on labels as classes
+    # for gdro only train on labels as classes
     num_subclasses = 2
-
 
     # From WILDS
     epochs = 5
     num_training_steps = ceil(len(train_dataset) / batch_size[0]) * epochs
     eta = 0.01
-   
 
     run_trials_args = {
         'model_class': models.BertClassifier,
@@ -88,7 +76,7 @@ elif args.dataset == 'civilcomments':
         'vector_subclass':True
     }
 
-trials = 5
+trials = 1
 run_trials_args['num_trials'] = trials
 
 run_trials_args['verbose'] = args.verbose
@@ -128,16 +116,16 @@ mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasse
 # results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
 for loss_class, fn_name, loss_args in zip(
-        [gdro_class,],
-        [gdro_name, ],
-        [gdro_args, ]):
+        [mix25_class, mix50_class, mix75_class, erm_class],
+        [mix25_name,  mix50_name,  mix75_name,  upweight_name],
+        [mix25_args,  mix50_args,  mix75_args,  erm_args]):
         # [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
         # [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
         # [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
     if verbose:
         print(f"Running trials: {fn_name}")
 
-    reweight_train = loss_class != erm_class
+    reweight_train = fn_name != erm_name
     train_dataloader, val_dataloader, test_dataloader, = utils.get_dataloaders(
         (train_dataset, val_dataset, test_dataset),
         batch_size=batch_size,
@@ -163,7 +151,7 @@ for loss_class, fn_name, loss_args in zip(
         # results["Accuracies"],
         accuracies,
         index=pd.MultiIndex.from_product(
-            [range(trials), range(epochs + 1), subtypes],
+            [range(run_trials_args['num_trials']), range(run_trials_args['epochs'] + 1), subtypes],
             names=["trial", "epoch", "subtype"]
         )
     )

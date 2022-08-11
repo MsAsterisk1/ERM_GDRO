@@ -1,5 +1,6 @@
 import torch
 
+
 class ERMLoss:
     """
     Implements a standard Empirical Risk Minimization loss function
@@ -39,8 +40,8 @@ class GDROLoss:
         if self.q.device != device:
             self.q = self.q.to(device)
 
-        losses = torch.zeros(self.num_subclasses)
-        subclass_counts = torch.zeros(self.num_subclasses)
+        losses = torch.zeros(self.num_subclasses).to(device)
+        subclass_counts = torch.zeros(self.num_subclasses).to(device)
 
         for subclass in range(self.num_subclasses):
 

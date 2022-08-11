@@ -21,11 +21,7 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, s
     avg_loss = 0
 
     for i in range(steps_per_epoch):
-        for s in range(sub_batches):
-            # accumulate is True except on the last sub-batch
-            accumulate = s != sub_batches - 1
-            loss = loss_fn(next(dataloader), accumulate=accumulate)
-        loss /= sub_batches
+        loss = loss_fn(next(dataloader))
         avg_loss += loss.item()
 
         # Backpropagation
