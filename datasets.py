@@ -75,3 +75,17 @@ class OnDemandImageDataset(Dataset):
         subclass = self.subclasses[idx]
 
         return img_tensor, label, subclass
+
+class SubDataset(Dataset):
+
+    def __init__(self, indices, dataset):
+        self.indices = indices
+        self.subclasses = torch.index_select(dataset.subclasses, 0, indices)
+        self.dataset = dataset
+
+    def __len__(self):
+        return len(self.idxs)
+
+    def __getitem__(self, idx):
+        return self.dataset.__getitem__(self.indices[idx])
+

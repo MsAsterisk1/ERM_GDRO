@@ -6,7 +6,7 @@ import numpy as np
 # from wilds import get_dataset
 from torchvision import transforms
 
-from datasets import SubclassedDataset, OnDemandImageDataset
+from datasets import SubclassedDataset, OnDemandImageDataset, SubDataset
 from dataloaders import InfiniteDataLoader
 from transformers import DistilBertTokenizer
 
@@ -249,6 +249,28 @@ def get_dataloaders(datasets, batch_size, reweight_train=False):
 
     return train_dataloader, val_dataloader, test_dataloader
 
-def get_partitioned_dataloaders(datasets, batch_size, reweight_train=False):
+
+def split_dataset(dataset, proportion=0.5, seed=None):
+    indices = np.arange(len(dataset))
+
+    if seed is not None:
+        np.shuffle.seed(seed)
+
+    np.random.shuffle(indices)
+
+    split_point = int(proportion * len(dataset))
+
+    indices_1 = indices[:split_point]
+    indices_2 = indices[split_point:]
+
+    return SubDataset(indices_1, dataset), SubDataset(indices_2, dataset)
+
+
+
+
+
+def get_partitioned_dataloaders(datasets, batch_size, reweight_train=False, proportion=0.5, seed=None):
     train_dataset, val_dataset, test_dataset = datasets
-    train_dataset0, train_dataset1 = train_dataset[:len(train_dataset)//2], train_dataset[len(train_dataset)//2:]
+    train_dataset0, train_dataset1 = split_dataset(train_dataset, proportion=proportion, seed=seed)
+
+    train_dataloader = 
