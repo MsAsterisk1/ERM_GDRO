@@ -63,3 +63,38 @@ class InfiniteDataLoader:
 
     def batches_per_epoch(self):
         return math.ceil(len(self.dataset) / self.batch_size)
+
+
+class PartitionedDataLoader:
+    """
+    Wraps two dataloaders for training on independent splits
+    """
+    def __init__(self, dataset0, batch_size0,
+                       dataset1, batch_size1,
+                       replacement0=True, drop_last0=True, weights0=None, num_workers0=0,
+                       replacement1=True, drop_last1=True, weights1=None, num_workers1=0):
+        self.dataloader0 = InfiniteDataLoader(
+            dataset0,
+            batch_size0,
+            replacement=replacement0,
+            drop_last=drop_last0,
+            weights=weights0,
+            num_workers=num_workers0
+        )
+        self.dataloader1 = InfiniteDataLoader(
+            dataset1,
+            batch_size1,
+            replacement=replacement1,
+            drop_last=drop_last1,
+            weights=weights1,
+            num_workers=num_workers1
+        )
+
+    def __next__(self):
+        return next(self.dataloader0), next(self.dataloader1)
+
+    def __len__(self):
+        raise ValueError
+
+    def batches_per_epoch(self):
+        return self.dataloader0.batches_per_epoch()
