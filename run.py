@@ -12,13 +12,14 @@ import transformers
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset')
 parser.add_argument('--test_name', default='test')
+parser.add_argument('--device', default="cuda" if torch.cuda.is_available() else "cpu")
 parser.add_argument('--verbose', action='store_true')
 
 args = parser.parse_args()
 
 # hyperparameters
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = args.device  # "cuda" if torch.cuda.is_available() else "cpu"
 
 if args.dataset == 'waterbirds':
 
@@ -32,7 +33,7 @@ if args.dataset == 'waterbirds':
     run_trials_args = {
         'model_class': models.TransferModel50,
         'model_args': {'device': device, 'freeze': False},
-        'epochs': 1,
+        'epochs': 300,
         'optimizer_class': torch.optim.SGD,
         'optimizer_args': {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9},
         'num_subclasses': 4,
@@ -76,7 +77,7 @@ elif args.dataset == 'civilcomments':
         'vector_subclass':True
     }
 
-trials = 1
+trials = 5
 run_trials_args['num_trials'] = trials
 
 run_trials_args['verbose'] = args.verbose
@@ -115,10 +116,12 @@ mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasse
 
 # results = {"Accuracies": {}, "q": {}, "ROC": {}}
 
+accuracies = {}
+
 for loss_class, fn_name, loss_args in zip(
-        [mix25_class, mix50_class, mix75_class, erm_class],
-        [mix25_name,  mix50_name,  mix75_name,  upweight_name],
-        [mix25_args,  mix50_args,  mix75_args,  erm_args]):
+        [gdro_class, mix25_class, mix50_class, mix75_class, erm_class],
+        [gdro_name,  mix25_name,  mix50_name,  mix75_name,  upweight_name],
+        [gdro_args,  mix25_args,  mix50_args,  mix75_args,  erm_args]):
         # [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
         # [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
         # [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
@@ -141,9 +144,7 @@ for loss_class, fn_name, loss_args in zip(
     run_trials_args['val_dataloader'] = val_dataloader
     run_trials_args['test_dataloader'] = test_dataloader
 
-
-
-    accuracies = run_trials(**run_trials_args)[0]
+    accuracies[fn_name] = run_trials(**run_trials_args)[0]
     # results["Accuracies"][fn_name] = accuracies
 
 
