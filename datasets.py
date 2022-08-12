@@ -61,9 +61,9 @@ class OnDemandImageDataset(Dataset):
         self.features = torch.stack(img_tensors)
 
         # column 2: image label
-        self.labels = torch.LongTensor(self.metadata.iloc[:, 2].values).squeeze().to(self.device)
+        self.labels = torch.LongTensor(metadata.iloc[:, 2].values).squeeze().to(self.device)
         # column 4 contains the confounding label, which is combined with column 2 to get the subclass
-        self.subclasses = torch.LongTensor(2 * self.metadata.iloc[:, 2].values + self.metadata.iloc[:, 4].values).squeeze().to(
+        self.subclasses = torch.LongTensor(2 * metadata.iloc[:, 2].values + metadata.iloc[:, 4].values).squeeze().to(
             self.device)
 
     def __len__(self):
