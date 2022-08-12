@@ -36,8 +36,6 @@ class SubclassedDataset(Dataset):
 
 class OnDemandImageDataset(Dataset):
     """
-    A dataset for loading images from the disk as they are needed rather than storing them all in GPU RAM
-    This is very, very slow but if RAM is limited or the images are too large this may be necessary
     This class was originally created to load data from waterbirds, so it may be necessary to modify the code below to refer to the correct columns in the metadata dataframe
     """
 
@@ -53,10 +51,14 @@ class OnDemandImageDataset(Dataset):
         self.transform = transform
         self.device = device
 
-        self.features = []
+        img_tensors = []
         for i in range(len(metadata)):
             img_path = metadata.iloc[i, 1]
-            self.features.append(Image.open(self.root_dir + img_path))
+            # image tensors go on CPU RAM until the model needs to move them to GPU
+            img = Image.open(self.root_dir + img_path)
+            img_tensors.append(transform(img).to('cpu'))
+            img.close()
+        self.features = torch.tensor(img_tensors)
 
         # column 2: image label
         self.labels = torch.LongTensor(self.metadata.iloc[:, 2].values).squeeze().to(self.device)
@@ -71,14 +73,10 @@ class OnDemandImageDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        # column 1: image path
-        # img_path = self.metadata.iloc[idx, 1]
-        img_tensor = self.transform(self.features[idx]).squeeze().to(self.device)
-
         label = self.labels[idx]
         subclass = self.subclasses[idx]
 
-        return img_tensor, label, subclass
+        return self.features[idx], label, subclass
 
 
 class SubDataset(Dataset):

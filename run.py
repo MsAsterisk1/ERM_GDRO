@@ -134,7 +134,7 @@ for loss in args.loss:
     run_trials_args['val_dataloader'] = val_dataloader
     run_trials_args['test_dataloader'] = test_dataloader
 
-    accuracies[fn_name] = run_trials(**run_trials_args)[0]
+    accuracies[loss] = run_trials(**run_trials_args)[0]
 
     accuracies_df = pd.DataFrame(
         accuracies,

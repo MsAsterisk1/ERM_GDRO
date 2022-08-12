@@ -12,6 +12,7 @@ class NeuralNetwork(nn.Module):
     def __init__(self, layers, device='cpu'):
         super(NeuralNetwork, self).__init__()
         self.flatten = nn.Flatten()
+        self.device = device
 
         stack = []
         for i in range(len(layers) - 1):
@@ -20,6 +21,7 @@ class NeuralNetwork(nn.Module):
         self.linear_relu_stack = nn.Sequential(*stack[:-1])
 
     def forward(self, x):
+        x = x.to(self.device)
         x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return logits
@@ -38,6 +40,8 @@ class TransferModel18(nn.Module):
         else:
             self.model = torchvision.models.resnet18().to(device)
 
+        self.device = device
+
         if freeze:
             for param in self.model.parameters():
                 param.requires_grad = False
@@ -52,6 +56,7 @@ class TransferModel18(nn.Module):
                 nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
+        x.to(self.device)
         return self.model(x).squeeze()
 
 
@@ -61,6 +66,8 @@ class TransferModel50(nn.Module):
     """
     def __init__(self, pretrained=True, freeze=True, device='cpu'):
         super(TransferModel50, self).__init__()
+
+        self.device = device
 
         if pretrained:
             self.model = torchvision.models.resnet50(weights='DEFAULT').to(device)
@@ -81,6 +88,7 @@ class TransferModel50(nn.Module):
                 nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
+        x.to(self.device)
         return self.model(x).squeeze()
 
 
