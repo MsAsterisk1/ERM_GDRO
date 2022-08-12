@@ -269,7 +269,7 @@ def split_dataset(dataset, proportion=0.5, seed=None):
 
 
 
-def get_partitioned_dataloader(dataset, batch_size, reweight_train=False, proportion=0.5, seed=None):
+def get_partitioned_dataloader(dataset, batch_size, proportion=0.5, seed=None):
    
     dataset0, dataset1 = split_dataset(dataset, proportion=proportion, seed=seed)
 
