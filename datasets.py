@@ -55,7 +55,7 @@ class OnDemandImageDataset(Dataset):
 
         self.features = []
         for i in range(len(metadata)):
-            img_path = metadata.iloc[idx, 1]
+            img_path = metadata.iloc[i, 1]
             self.features.append(Image.open(self.root_dir + img_path))
 
         # column 2: image label
@@ -79,6 +79,7 @@ class OnDemandImageDataset(Dataset):
         subclass = self.subclasses[idx]
 
         return img_tensor, label, subclass
+
 
 class SubDataset(Dataset):
 
