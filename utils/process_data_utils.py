@@ -225,11 +225,11 @@ def get_waterbirds_datasets(device='cpu'):
 #
 #     return train_dataloader, val_dataloader, test_dataloader
 
-def get_dataloaders(datasets, batch_size, reweight_train=False, split=False, seed=None):
+def get_dataloaders(datasets, batch_size, reweight_train=False, split=False, proportion=0.5, seed=None):
     train_dataset, val_dataset, test_dataset = datasets
 
     if split:
-        train_dataloader = get_partitioned_dataloader(train_dataset, batch_size[0], proportion=0.5, seed=seed)
+        train_dataloader = get_partitioned_dataloader(train_dataset, batch_size[0], proportion=proportion, seed=seed)
     else:
         train_dataloader = InfiniteDataLoader(
             train_dataset,
