@@ -58,7 +58,7 @@ class OnDemandImageDataset(Dataset):
             img = Image.open(self.root_dir + img_path)
             img_tensors.append(transform(img).to('cpu'))
             img.close()
-        self.features = torch.tensor(img_tensors)
+        self.features = torch.stack(img_tensors)
 
         # column 2: image label
         self.labels = torch.LongTensor(self.metadata.iloc[:, 2].values).squeeze().to(self.device)
