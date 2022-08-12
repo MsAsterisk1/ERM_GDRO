@@ -36,7 +36,7 @@ class TransferModel18(nn.Module):
         super(TransferModel18, self).__init__()
 
         if pretrained:
-            self.model = torchvision.models.resnet18(weights='DEFAULT').to(device)
+            self.model = torchvision.models.resnet18(pretrained=True).to(device)
         else:
             self.model = torchvision.models.resnet18().to(device)
 
@@ -56,7 +56,7 @@ class TransferModel18(nn.Module):
                 nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
-        x.to(self.device)
+        x = x.to(self.device)
         return self.model(x).squeeze()
 
 
@@ -70,7 +70,7 @@ class TransferModel50(nn.Module):
         self.device = device
 
         if pretrained:
-            self.model = torchvision.models.resnet50(weights='DEFAULT').to(device)
+            self.model = torchvision.models.resnet50(pretrained=True).to(device)
         else:
             self.model = torchvision.models.resnet50().to(device)
 
@@ -88,7 +88,7 @@ class TransferModel50(nn.Module):
                 nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
-        x.to(self.device)
+        x = x.to(self.device)
         return self.model(x).squeeze()
 
 

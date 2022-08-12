@@ -12,6 +12,7 @@ import transformers
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset')
 parser.add_argument('loss', nargs='+')
+parser.add_argument('--trials', default=5)
 parser.add_argument('--test_name', default='test')
 parser.add_argument('--device', default="0" if torch.cuda.is_available() else "cpu")
 parser.add_argument('--verbose', action='store_true')
@@ -59,7 +60,7 @@ elif args.dataset == 'mnist':
     }
 elif args.dataset == 'civilcomments':
     train_dataset, val_dataset, test_dataset = utils.get_CivilComments_Datasets(device=device)
-    batch_size = (16, 32)
+    batch_size = (16, 128)
 
     # for gdro only train on labels as classes
     num_subclasses = 2
@@ -82,7 +83,7 @@ elif args.dataset == 'civilcomments':
         'vector_subclass':True
     }
 
-trials = 30
+trials = args.trials
 run_trials_args['num_trials'] = trials
 
 run_trials_args['verbose'] = args.verbose
