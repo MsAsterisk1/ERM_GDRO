@@ -100,7 +100,8 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
 
         #for train, we only group by labels
         if split == 0:
-            subclasses = labels
+            others = torch.from_numpy(sub_df['others'].values)
+            subclasses = labels * 2 + others
             
         else:
             num_groups = len(CC_subgroup_cols) + 1  # also need the others 'subgroup'
