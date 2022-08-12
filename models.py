@@ -56,7 +56,7 @@ class TransferModel18(nn.Module):
                 nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
-        x.to(self.device)
+        x = x.to(self.device)
         return self.model(x).squeeze()
 
 
@@ -88,7 +88,7 @@ class TransferModel50(nn.Module):
                 nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
-        x.to(self.device)
+        x = x.to(self.device)
         return self.model(x).squeeze()
 
 
