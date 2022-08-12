@@ -124,12 +124,15 @@ mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasse
 accuracies = {}
 
 for loss_class, fn_name, loss_args in zip(
-        [erm_class, gdro_class, mix75_class, erm_class],
-        [erm_name,  gdro_name,  mix75_name,  upweight_name],
-        [erm_args,  gdro_args,  mix75_args,  erm_args]):
+       # [erm_class, gdro_class, mix75_class, erm_class],
+       # [erm_name,  gdro_name,  mix75_name,  upweight_name],
+       # [erm_args,  gdro_args,  mix75_args,  erm_args]):
         # [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
         # [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
-        # [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
+        # [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):torch.cuda.set_device(1)
+        [mix50_class,],
+        [mix50_name,],
+        [mix50_args,]):
     if verbose:
         print(f"Running trials: {fn_name}")
 
