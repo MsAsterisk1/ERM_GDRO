@@ -26,7 +26,7 @@ if args.dataset == 'waterbirds':
     train_dataset, val_dataset, test_dataset = utils.get_waterbirds_datasets(device=device)
 
     # From Distributionally Robust Neural Networks
-    batch_size = (32, 32)
+    batch_size = (128, 128)
     eta = 0.01
     num_subclasses = 4
 
@@ -119,9 +119,9 @@ mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasse
 accuracies = {}
 
 for loss_class, fn_name, loss_args in zip(
-        [gdro_class, mix25_class, mix50_class, mix75_class, erm_class],
-        [gdro_name,  mix25_name,  mix50_name,  mix75_name,  upweight_name],
-        [gdro_args,  mix25_args,  mix50_args,  mix75_args,  erm_args]):
+        [erm_class, gdro_class, mix75_class, erm_class],
+        [erm_name,  gdro_name,  mix75_name,  upweight_name],
+        [erm_args,  gdro_args,  mix75_args,  erm_args]):
         # [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
         # [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
         # [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
