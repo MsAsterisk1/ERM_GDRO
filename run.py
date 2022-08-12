@@ -52,7 +52,7 @@ elif args.dataset == 'mnist':
 
     run_trials_args = {
         'model_class': models.NeuralNetwork,
-        'model_args': {'layers': [28 * 28, 256, 64, 10]},
+        'model_args': {'layers': [28 * 28, 256, 64, 10], 'device': device},
         'epochs': 10,
         'optimizer_class': torch.optim.Adam,
         'optimizer_args': {'lr': 0.0005, 'weight_decay': 0.005},
@@ -83,7 +83,7 @@ elif args.dataset == 'civilcomments':
         'vector_subclass':True
     }
 
-trials = args.trials
+trials = int(args.trials)
 run_trials_args['num_trials'] = trials
 
 run_trials_args['verbose'] = args.verbose
