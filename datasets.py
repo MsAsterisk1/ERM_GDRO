@@ -67,7 +67,7 @@ class OnDemandImageDataset(Dataset):
             self.device)
 
     def __len__(self):
-        return len(self.metadata)
+        return len(self.labels)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
