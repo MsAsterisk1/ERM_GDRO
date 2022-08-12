@@ -26,12 +26,11 @@ class GDROLoss:
     See https://arxiv.org/abs/1911.08731 for details on the algorithm
     """
 
-    def __init__(self, model, loss_fn, eta, num_subclasses, vector_subclass=False):
+    def __init__(self, model, loss_fn, eta, num_subclasses):
         self.model = model
         self.loss_fn = loss_fn
         self.q = torch.ones(num_subclasses) / num_subclasses
         self.eta = eta
-        self.vector_subclass = vector_subclass
         self.num_subclasses = num_subclasses
 
     def compute_loss(self, preds, y, c):
@@ -77,9 +76,9 @@ class ERMGDROLoss:
     Calculates the loss as (t*ERM + (1-t)*gDRO)
     While this class does not have any method to change t internally, the value can be set from outside to produce more dynamic behavior
     """
-    def __init__(self, model, loss_fn, eta, num_subclasses, t=1, vector_subclass=False, partitioned=False):
+    def __init__(self, model, loss_fn, eta, num_subclasses, t=1, partitioned=False):
         self.erm = ERMLoss(model, loss_fn)
-        self.gdro = GDROLoss(model, loss_fn, eta, num_subclasses, vector_subclass)
+        self.gdro = GDROLoss(model, loss_fn, eta, num_subclasses)
         self.model = model
         self.t = t
         self.partitioned = partitioned
@@ -108,9 +107,9 @@ class UpweightLoss:
     In other words, UpweightLoss upweights the loss of small subclasses as compared to larger ones.
     Equivalent to gDRO with eta=0
     """
-    def __init__(self, model, loss_fn, num_subclasses, vector_subclass=False):
+    def __init__(self, model, loss_fn, num_subclasses):
         # wraps a GDROLoss with eta=0
-        self.gdro = GDROLoss(model, loss_fn, eta=0, num_subclasses=num_subclasses, vector_subclass=vector_subclass)
+        self.gdro = GDROLoss(model, loss_fn, eta=0, num_subclasses=num_subclasses)
 
     def compute_loss(self, preds, y, c):
         return self.gdro.compute_loss(preds, y, c)

@@ -6,8 +6,8 @@ import numpy as np
 # from wilds import get_dataset
 from torchvision import transforms
 
-from datasets import SubclassedDataset, OnDemandImageDataset
-from dataloaders import InfiniteDataLoader
+from datasets import SubclassedDataset, OnDemandImageDataset, SubDataset
+from dataloaders import InfiniteDataLoader, PartitionedDataLoader
 from transformers import DistilBertTokenizer
 
 url_CivilComments = 'https://worksheets.codalab.org/rest/bundles/0x8cd3de0634154aeaad2ee6eb96723c6e/contents/blob/all_data_with_identities.csv'
@@ -118,22 +118,22 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
     return datasets
 
 
-def get_CivilComments_DataLoaders(CC_df=None, datasets=None, gdro=False):
-    if datasets is None:
-        datasets = get_CivilComments_Datasets(CC_df=CC_df)
+# def get_CivilComments_DataLoaders(CC_df=None, datasets=None, gdro=False):
+#     if datasets is None:
+#         datasets = get_CivilComments_Datasets(CC_df=CC_df)
 
-    dataloaders = []
+#     dataloaders = []
 
-    if gdro:
-        subclass_weights = get_sampler_weights(datasets[0].subclasses)
-        train = InfiniteDataLoader(datasets[0], batch_size=16, weights=subclass_weights)
-    else: #ERM
-        train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
+#     if gdro:
+#         subclass_weights = get_sampler_weights(datasets[0].subclasses)
+#         train = InfiniteDataLoader(datasets[0], batch_size=16, weights=subclass_weights)
+#     else: #ERM
+#         train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
 
-    cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
-    test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
+#     cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
+#     test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
 
-    return train, cv, test
+#     return train, cv, test
 
 
 def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
@@ -224,16 +224,20 @@ def get_waterbirds_datasets(device='cpu'):
 #
 #     return train_dataloader, val_dataloader, test_dataloader
 
-def get_dataloaders(datasets, batch_size, reweight_train=False):
+def get_dataloaders(datasets, batch_size, reweight_train=False, split=False, seed=None):
     train_dataset, val_dataset, test_dataset = datasets
 
-    train_dataloader = InfiniteDataLoader(
-        train_dataset,
-        batch_size=batch_size[0],
-        weights=get_sampler_weights(train_dataset.subclasses) if reweight_train else None,
-        replacement=reweight_train,
-        drop_last=reweight_train
-    )
+    if split:
+        train_dataloader = get_partitioned_dataloader(train_dataset, batch_size[0], proportion=0.5, seed=seed)
+    else:
+        train_dataloader = InfiniteDataLoader(
+            train_dataset,
+            batch_size=batch_size[0],
+            weights=get_sampler_weights(train_dataset.subclasses) if reweight_train else None,
+            replacement=reweight_train,
+            drop_last=reweight_train
+        )
+
     val_dataloader = InfiniteDataLoader(
         val_dataset,
         batch_size=batch_size[1],
@@ -250,6 +254,35 @@ def get_dataloaders(datasets, batch_size, reweight_train=False):
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def get_partitioned_dataloaders(datasets, batch_size, reweight_train=False):
-    train_dataset, val_dataset, test_dataset = datasets
-    train_dataset0, train_dataset1 = train_dataset[:len(train_dataset)//2], train_dataset[len(train_dataset)//2:]
+def split_dataset(dataset, proportion=0.5, seed=None):
+    indices = np.arange(len(dataset))
+
+    if seed is not None:
+        np.random.seed(seed)
+
+    np.random.shuffle(indices)
+
+    split_point = int(proportion * len(dataset))
+
+    indices_1 = indices[:split_point]
+    indices_2 = indices[split_point:]
+
+    return SubDataset(indices_1, dataset), SubDataset(indices_2, dataset)
+
+
+
+
+
+def get_partitioned_dataloader(dataset, batch_size, proportion=0.5, seed=None):
+   
+    dataset0, dataset1 = split_dataset(dataset, proportion=proportion, seed=seed)
+
+    dataloader = PartitionedDataLoader(dataset0, int(batch_size * proportion), 
+                                       dataset1, int(batch_size * (1-batch_size)),
+                                       replacement0=False, drop_last0=False,
+                                       replacement1=True, drop_last1=True, 
+                                       weights1 = get_sampler_weights(dataset1.subclasses))
+                                       
+    return dataloader
+
+

@@ -91,7 +91,7 @@ class PartitionedDataLoader:
         )
 
     def __next__(self):
-        return next(self.dataloader0), next(self.dataloader1)
+        return tuple(zip(next(self.dataloader0), next(self.dataloader1)))
 
     def __len__(self):
         raise ValueError
