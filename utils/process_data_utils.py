@@ -277,8 +277,8 @@ def get_partitioned_dataloader(dataset, batch_size, proportion=0.5, seed=None):
    
     dataset0, dataset1 = split_dataset(dataset, proportion=proportion, seed=seed)
 
-    dataloader = PartitionedDataLoader(dataset0, batch_size//2, 
-                                       dataset1, batch_size//2,
+    dataloader = PartitionedDataLoader(dataset0, int(batch_size * proportion), 
+                                       dataset1, int(batch_size * (1-batch_size)),
                                        replacement0=False, drop_last0=False,
                                        replacement1=True, drop_last1=True, 
                                        weights1 = get_sampler_weights(dataset1.subclasses))
