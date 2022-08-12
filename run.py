@@ -82,7 +82,7 @@ elif args.dataset == 'civilcomments':
         'vector_subclass':True
     }
 
-trials = 30
+trials = 5
 run_trials_args['num_trials'] = trials
 
 run_trials_args['verbose'] = args.verbose
