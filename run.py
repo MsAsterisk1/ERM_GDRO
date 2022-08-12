@@ -15,7 +15,6 @@ parser.add_argument('loss', nargs='+')
 parser.add_argument('--test_name', default='test')
 parser.add_argument('--device', default="0" if torch.cuda.is_available() else "cpu")
 parser.add_argument('--verbose', action='store_true')
-parser.add_argument()
 
 args = parser.parse_args()
 
