@@ -11,6 +11,7 @@ import transformers
 
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset')
+parser.add_argument('loss', nargs='+')
 parser.add_argument('--test_name', default='test')
 parser.add_argument('--device', default="cuda" if torch.cuda.is_available() else "cpu")
 parser.add_argument('--verbose', action='store_true')
@@ -96,73 +97,48 @@ subtypes = ["Overall"]
 subtypes.extend(list(range(run_trials_args['num_subclasses'])))
 
 erm_class = ERMLoss
-erm_name = "ERMLoss"
 erm_args = {'loss_fn': torch.nn.CrossEntropyLoss()}
 gdro_class = GDROLoss
-gdro_name = "GDROLoss"
 gdro_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses}
-upweight_class = UpweightLoss
-upweight_name = "UpweightLoss"
+upweight_class = ERMLoss
 upweight_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'num_subclasses': num_subclasses}
 mix25_class = ERMGDROLoss
-mix25_name = "MixLoss25"
 mix25_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.25}
 mix50_class = ERMGDROLoss
-mix50_name = "MixLoss50"
 mix50_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.50}
 mix75_class = ERMGDROLoss
-mix75_name = "MixLoss75"
 mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.75}
 
-# results = {"Accuracies": {}, "q": {}, "ROC": {}}
+losses = {'erm': (erm_class, erm_args), 'gdro': (gdro_class, gdro_args), 'upweight': (upweight_class, upweight_args), 'mix25': (mix25_class, mix25_args), 'mix50': (mix50_class, mix50_args), 'mix75': (mix75_class, mix75_args)}
 
 accuracies = {}
 
-for loss_class, fn_name, loss_args in zip(
-        [erm_class, gdro_class, mix75_class, erm_class],
-        [erm_name,  gdro_name,  mix75_name,  upweight_name],
-        [erm_args,  gdro_args,  mix75_args,  erm_args]):
-        # [erm_class, gdro_class, upweight_class, mix25_class, mix50_class, mix75_class],
-        # [erm_name,  gdro_name,  upweight_name,  mix25_name,  mix50_name,  mix75_name],
-        # [erm_args,  gdro_args,  upweight_args,  mix25_args,  mix50_args,  mix75_args]):
+for loss in args.loss:
     if verbose:
-        print(f"Running trials: {fn_name}")
+        print(f"Running trials: {loss}")
 
-    reweight_train = fn_name != erm_name
+    reweight_train = loss != 'erm'
     train_dataloader, val_dataloader, test_dataloader, = utils.get_dataloaders(
         (train_dataset, val_dataset, test_dataset),
         batch_size=batch_size,
         reweight_train=reweight_train
     )
 
-   
-
-    run_trials_args['loss_class'] = loss_class
-    run_trials_args['loss_args'] = loss_args
+    run_trials_args['loss_class'], run_trials_args['loss_args'] = losses[loss]
 
     run_trials_args['train_dataloader'] = train_dataloader
     run_trials_args['val_dataloader'] = val_dataloader
     run_trials_args['test_dataloader'] = test_dataloader
 
     accuracies[fn_name] = run_trials(**run_trials_args)[0]
-    # results["Accuracies"][fn_name] = accuracies
-
 
     accuracies_df = pd.DataFrame(
-        # results["Accuracies"],
         accuracies,
         index=pd.MultiIndex.from_product(
             [range(run_trials_args['num_trials']), range(run_trials_args['epochs'] + 1), subtypes],
             names=["trial", "epoch", "subtype"]
         )
     )
-    # q_df = pd.DataFrame(
-    #     results["q"],
-    #     index=pd.MultiIndex.from_product(
-    #         [range(trials), range(epochs + 1), subtypes[1:]],
-    #         names=["trial", "epoch", "subtype"]
-    #     )
-    # )
 
     accuracies_df.to_csv(results_dir + f'accuracies.csv')
-    # q_df.to_csv(results_dir + f'q.csv')
+
