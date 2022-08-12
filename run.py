@@ -63,7 +63,7 @@ elif args.dataset == 'civilcomments':
     batch_size = (16, 128)
 
     # for gdro only train on labels as classes
-    num_subclasses = 2
+    num_subclasses = 4
 
     # From WILDS
     epochs = 5
