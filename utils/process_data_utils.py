@@ -254,7 +254,7 @@ def split_dataset(dataset, proportion=0.5, seed=None):
     indices = np.arange(len(dataset))
 
     if seed is not None:
-        np.shuffle.seed(seed)
+        np.random.seed(seed)
 
     np.random.shuffle(indices)
 
