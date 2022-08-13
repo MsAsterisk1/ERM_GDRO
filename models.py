@@ -84,9 +84,9 @@ class TransferModel50(nn.Module):
             nn.Linear(in_features=2048, out_features=2, bias=True, device=device),
         )
 
-        for layer in self.model.fc:
-            if hasattr(layer, 'weight'):
-                nn.init.xavier_uniform_(layer.weight)
+        # for layer in self.model.fc:
+        #     if hasattr(layer, 'weight'):
+        #         nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
         x = x.to(self.device)
