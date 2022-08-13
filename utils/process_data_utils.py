@@ -196,7 +196,7 @@ def get_waterbirds_datasets(device='cpu'):
     )
     train_df = metadata_df[metadata_df['split'] == 0]
     val_df = metadata_df[metadata_df['split'] == 1]
-    test_df = metadata_df[metadata_df['split'] == 1]
+    test_df = metadata_df[metadata_df['split'] == 2]
 
     train_dataset = OnDemandImageDataset(train_df, path, transform, device)
     val_dataset = OnDemandImageDataset(val_df, path, transform, device)
