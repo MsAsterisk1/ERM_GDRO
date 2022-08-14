@@ -32,7 +32,7 @@ else:
 if args.dataset == 'waterbirds':
 
     train_dataset, val_dataset, test_dataset = utils.get_waterbirds_datasets(device=device)
-
+    print('got data')
     # From Distributionally Robust Neural Networks
     batch_size = (128, 128)
     eta = 0.01
@@ -120,6 +120,7 @@ losses = {'erm': (erm_class, erm_args), 'gdro': (gdro_class, gdro_args), 'upweig
 
 accuracies = {}
 
+print('got loss functions')
 for loss_fn in args.loss:
     if verbose:
         print(f"Running trials: {loss_fn}")
@@ -139,6 +140,7 @@ for loss_fn in args.loss:
     run_trials_args['val_dataloader'] = val_dataloader
     run_trials_args['test_dataloader'] = test_dataloader
 
+    print('run trials')
     accuracies[loss_fn] = run_trials(**run_trials_args)[0]
 
     accuracies_df = pd.DataFrame(

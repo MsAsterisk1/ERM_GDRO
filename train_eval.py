@@ -38,7 +38,7 @@ def split_train(dataloader, model, loss_fns, optimizers, gradient_clip=None):
 
         #Train featurizer with ERM
         model.set_grad('classifier', False)
-        train_batch((X[0],y[0],c[0]) model, loss_fns[0], optimizers[0])
+        train_batch((X[0],y[0],c[0]), model, loss_fns[0], optimizers[0])
         model.set_grad('classifier', True)
 
 
