@@ -213,6 +213,9 @@ def train_epochs(epochs,
         # if scheduler:
         #     scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
 
+        loss_fns = (loss_fn.erm, loss_fn.gdro)
+        split_train(train_dataloader, model, loss_fns, optimizer, gradient_clip=None)
+
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass, verbose=verbose)
             accuracies.extend(epoch_accuracies)
@@ -248,7 +251,8 @@ def run_trials(num_trials,
                record=False,
                gradient_clip = None,
                sub_batches=1,
-               vector_subclass=False):
+               vector_subclass=False,
+               split_train=False):
     """
     Runs a number of trials
     :param num_trials: The number of trials to run
@@ -287,12 +291,8 @@ def run_trials(num_trials,
         loss_args['model'] = model
         loss_fn = loss_class(**loss_args)
         optimizer_args['params'] = model.parameters()
-        optimizer = optimizer_class(**optimizer_args)
-        if scheduler_class is not None:
-            scheduler_args['optimizer'] = optimizer
-            scheduler = scheduler_class(**scheduler_args)
-        else:
-            scheduler = None
+        optimizers = (optimizer_class(**optimizer_args),optimizer_class(**optimizer_args))
+
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -303,8 +303,7 @@ def run_trials(num_trials,
                                      test_dataloader=test_dataloader,
                                      model=model,
                                      loss_fn=loss_fn,
-                                     optimizer=optimizer,
-                                     scheduler=scheduler,
+                                     optimizer=optimizers,
                                      verbose=verbose,
                                      record=record,
                                      num_subclasses=num_subclasses,
