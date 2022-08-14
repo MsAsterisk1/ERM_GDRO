@@ -4,7 +4,47 @@ import torch
 from loss import GDROLoss
 
 
-def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, scheduler=None, gradient_clip=None):
+
+def train_batch(minibatch, model, loss_fn, optimizer, scheduler=None, gradient_clip=None):
+
+    loss = loss_fn(minibatch)
+
+            # Backpropagation
+    optimizer.zero_grad()
+    loss.backward()
+
+    if gradient_clip is not None:
+        torch.nn.utils.clip_grad_norm_(model.parameters(),gradient_clip)
+
+    optimizer.step()
+
+    if scheduler is not None:
+        scheduler.step()
+
+def split_train(dataloader, model, loss_fns, optimizers, gradient_clip=None):
+
+    model.train()
+
+    steps_per_epoch = dataloader.batches_per_epoch()
+
+    for i in range(steps_per_epoch):
+
+        X, y, c = next(dataloader)
+
+        #Train classifier with GDRO
+        model.set_grad('featurizer', False)
+        train_batch((X[1],y[1],c[1]), model, loss_fns[1], optimizers[1])
+        model.set_grad('featurizer', True)
+
+        #Train featurizer with ERM
+        model.set_grad('classifier', False)
+        train_batch((X[0],y[0],c[0]) model, loss_fns[0], optimizers[0])
+        model.set_grad('classifier', True)
+
+
+
+
+def train(dataloader, model, loss_fn, optimizer, verbose=False, scheduler=None, gradient_clip=None):
     """
     Train the model for one epoch
     :param dataloader: The dataloader for the training data
