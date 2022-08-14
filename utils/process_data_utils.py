@@ -189,19 +189,20 @@ def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
 
 def get_waterbirds_datasets(device='cpu'):
     path = 'data/waterbirds_v1.0/'
-
+    print('getting 1')
     metadata_df = pd.read_csv(path + 'metadata.csv')
     transform = transforms.Compose(
         [transforms.Resize((224, 224)), transforms.ToTensor()]
     )
+    print('getting 2')
     train_df = metadata_df[metadata_df['split'] == 0]
     val_df = metadata_df[metadata_df['split'] == 1]
     test_df = metadata_df[metadata_df['split'] == 2]
-
+    print('getting 3')
     train_dataset = OnDemandImageDataset(train_df, path, transform, device)
     val_dataset = OnDemandImageDataset(val_df, path, transform, device)
     test_dataset = OnDemandImageDataset(test_df, path, transform, device)
-
+    print('made datasets')
     return train_dataset, val_dataset, test_dataset
 
 

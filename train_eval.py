@@ -291,7 +291,10 @@ def run_trials(num_trials,
         loss_args['model'] = model
         loss_fn = loss_class(**loss_args)
         optimizer_args['params'] = model.parameters()
-        optimizers = (optimizer_class(**optimizer_args),optimizer_class(**optimizer_args))
+
+        optimizer_args_2 = optimizer_args.copy()
+        optimizer_args_2['params'] = model.parameters()
+        optimizers = (optimizer_class(**optimizer_args),optimizer_class(**optimizer_args_2))
 
 
         if torch.cuda.is_available():
