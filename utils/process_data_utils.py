@@ -198,7 +198,7 @@ def get_celeba_datasets(device='cpu', path='data/celeba/'):
     with open(path + 'list_attr_celeba.txt') as f:
         lines = f.readlines()
         n = int(lines[0])
-        attr_names = re.split(" +", lines[1])
+        attr_names = re.split(" +", lines[1])[:-1]
         anno_df = pd.DataFrame(columns=attr_names, index=range(n))
         filenames = []
         for i in range(n):
