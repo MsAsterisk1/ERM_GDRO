@@ -17,6 +17,7 @@ parser.add_argument('--test_name', default='test')
 parser.add_argument('--device', default="0" if torch.cuda.is_available() else "cpu")
 parser.add_argument('--verbose', action='store_true')
 parser.add_argument('--prop', action='store_true')
+parser.add_argument('--multiclass', action='store_true')
 
 
 args = parser.parse_args()
@@ -40,7 +41,7 @@ if args.dataset == 'waterbirds':
 
     run_trials_args = {
         'model_class': models.TransferModel50,
-        'model_args': {'device': device, 'freeze': False},
+        'model_args': {'device': device, 'freeze': False, 'num_labels': 4 if args.multiclass else 2},
         'epochs': 300,
         'optimizer_class': torch.optim.SGD,
         'optimizer_args': {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9},
@@ -54,7 +55,7 @@ elif args.dataset == 'mnist':
 
     run_trials_args = {
         'model_class': models.NeuralNetwork,
-        'model_args': {'layers': [28 * 28, 256, 64, 10], 'device': device},
+        'model_args': {'layers': [28 * 28, 256, 64, 10 if args.multiclass else 2], 'device': device},
         'epochs': 10,
         'optimizer_class': torch.optim.Adam,
         'optimizer_args': {'lr': 0.0005, 'weight_decay': 0.005},
@@ -74,7 +75,7 @@ elif args.dataset == 'civilcomments':
 
     run_trials_args = {
         'model_class': models.BertClassifier,
-        'model_args': {'device':device},
+        'model_args': {'device': device, 'num_labels': 4 if args.multiclass else 2},
         'epochs': 5,
         'optimizer_class': torch.optim.AdamW,
         'optimizer_args': {'lr': 0.00001, 'weight_decay': 0.01},
@@ -92,7 +93,7 @@ elif args.dataset == 'celeba':
 
     run_trials_args = {
         'model_class': models.TransferModel50,
-        'model_args': {'device': device, 'freeze': False},
+        'model_args': {'device': device, 'freeze': False, 'num_labels': 4 if args.multiclass else 2},
         'epochs': 50,
         'optimizer_class': torch.optim.SGD,
         'optimizer_args': {'lr': 0.0001, 'weight_decay': 0.0001, 'momentum': 0.9},
@@ -134,6 +135,11 @@ mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasse
 losses = {'erm': (erm_class, erm_args), 'gdro': (gdro_class, gdro_args), 'upweight': (upweight_class, upweight_args), 'mix25': (mix25_class, mix25_args), 'mix50': (mix50_class, mix50_args), 'mix75': (mix75_class, mix75_args)}
 
 accuracies = {}
+
+if args.multiclass:
+    train_dataset.labels = train_dataset.subclasses
+    val_dataset.labels = val_dataset.subclasses
+    test_dataset.labels = test_dataset.subclasses
 
 for loss_fn in args.loss:
     if verbose:

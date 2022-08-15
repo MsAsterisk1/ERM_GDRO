@@ -32,7 +32,7 @@ class TransferModel18(nn.Module):
     ResNet18 transfer learning model
     By default we set the fully-connected classifier layer to a single 512x2 layer
     """
-    def __init__(self, pretrained=True, freeze=True, device='cpu'):
+    def __init__(self, num_labels=2, pretrained=True, freeze=True, device='cpu'):
         super(TransferModel18, self).__init__()
 
         if pretrained:
@@ -48,7 +48,7 @@ class TransferModel18(nn.Module):
 
         # Fully-connected layer
         self.model.fc = nn.Sequential(
-            nn.Linear(in_features=512, out_features=2, bias=True, device=device),
+            nn.Linear(in_features=512, out_features=num_labels, bias=True, device=device),
         )
 
         for layer in self.model.fc:
@@ -64,7 +64,7 @@ class TransferModel50(nn.Module):
     """
     ResNet50 transfer learning model
     """
-    def __init__(self, pretrained=True, freeze=True, device='cpu'):
+    def __init__(self, num_labels=2, pretrained=True, freeze=True, device='cpu'):
         super(TransferModel50, self).__init__()
 
         self.device = device
@@ -80,7 +80,7 @@ class TransferModel50(nn.Module):
 
         # Fully-connected layer
         self.model.fc = nn.Sequential(
-            nn.Linear(in_features=2048, out_features=2, bias=True, device=device),
+            nn.Linear(in_features=2048, out_features=num_labels, bias=True, device=device),
         )
 
         # for layer in self.model.fc:
