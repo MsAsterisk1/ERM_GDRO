@@ -1,3 +1,4 @@
+import re
 from re import sub
 import torch
 import pandas as pd
@@ -28,13 +29,13 @@ def get_sampler_weights(subclass_labels):
 
     for subclass in subclasses:
         subclass_counts = sum(subclass_labels == subclass)
-        subclass_freqs.append(1/subclass_counts)
+        subclass_freqs.append(1 / subclass_counts)
 
     subclass_weights = torch.zeros_like(subclass_labels).float()
-    
+
     for idx, label in enumerate(subclass_labels):
         subclass_weights[idx] = subclass_freqs[int(label)]
-        
+
     return subclass_weights
 
 
@@ -99,11 +100,11 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
         labels = torch.from_numpy(sub_df['toxicity'].values)
         features = torch.stack((tokens['input_ids'], tokens['attention_mask']), dim=1)
 
-        #for train, we only group by labels
+        # for train, we only group by labels
         if split == 0:
             others = torch.from_numpy(sub_df['others'].values)
             subclasses = labels * 2 + others
-            
+
         else:
             num_groups = len(CC_subgroup_cols) + 1  # also need the others 'subgroup'
             super_subclasses = torch.from_numpy(sub_df[CC_subgroup_cols + ['others']].values)
@@ -113,8 +114,8 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
             nontoxic_subclasses = torch.logical_and(super_subclasses, torch.logical_not(repeat_labels))
             subclasses = torch.cat((toxic_subclasses, nontoxic_subclasses), dim=1)
 
-        labels=labels.to(device).long()
-        subclasses=subclasses.to(device).long()
+        labels = labels.to(device).long()
+        subclasses = subclasses.to(device).long()
         datasets.append(SubclassedDataset(features, labels, subclasses))
 
     return datasets
@@ -187,28 +188,28 @@ def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
 #
 #     return train_dataloader, val_dataloader, test_dataloader
 
+def get_images(paths, transform=transforms.ToTensor()):
+    img_tensors = []
+    for img_path in paths:
+        # image tensors go on CPU RAM until the model needs to move them to GPU
+        img = Image.open(img_path)
+        img_tensors.append(transform(img).to('cpu'))
+        img.close()
+    return torch.stack(img_tensors)
+
 
 def get_waterbirds_datasets(device='cpu'):
     path = 'data/waterbirds_v1.0/'
-
     metadata_df = pd.read_csv(path + 'metadata.csv')
-    transform = transforms.Compose(
-        [transforms.Resize((224, 224)), transforms.ToTensor()]
-    )
 
-    img_tensors = []
-    for i in range(len(metadata_df)):
-        img_path = metadata_df.iloc[i, 1]
-        # image tensors go on CPU RAM until the model needs to move them to GPU
-        img = Image.open(path + img_path)
-        img_tensors.append(transform(img).to('cpu'))
-        img.close()
-    features = torch.stack(img_tensors)
+    transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
+    features = get_images(paths=metadata_df['img_filename'].values, transform=transform)
 
     # column 2: image label (bird type)
     labels = torch.LongTensor(metadata_df.iloc[:, 2].values).squeeze().to(device)
     # column 4 contains the confounding label (place), which is combined with column 2 to get the subclass
-    subclasses = torch.LongTensor(2*metadata_df.iloc[:, 2].values + metadata_df.iloc[:, 4].values).squeeze().to(device)
+    subclasses = torch.LongTensor(2 * metadata_df.iloc[:, 2].values + metadata_df.iloc[:, 4].values).squeeze().to(
+        device)
 
     train_idx = metadata_df['split'] == 0
     val_idx = metadata_df['split'] == 1
@@ -221,25 +222,47 @@ def get_waterbirds_datasets(device='cpu'):
     return train_dataset, val_dataset, test_dataset
 
 
-# def get_waterbirds_dataloaders(batch_size, device='cpu', reweight_train=False):
-#     train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device)
-#
-#     train_dataloader = InfiniteDataLoader(
-#         train_dataset,
-#         batch_size=batch_size,
-#         weights=get_sampler_weights(train_dataset.subclasses) if reweight_train else None
-#     )
-#     val_dataloader = InfiniteDataLoader(
-#         val_dataset,
-#         batch_size=batch_size
-#     )
-#     test_dataloader = InfiniteDataLoader(
-#         test_dataset,
-#         replacement=False,
-#         batch_size=batch_size
-#     )
-#
-#     return train_dataloader, val_dataloader, test_dataloader
+def get_celeba_datasets(device='cpu'):
+    path = 'data/celeba/'
+
+    with open(path + 'list_attr_celeba.txt') as f:
+        lines = f.readlines()
+        n = int(lines[0])
+        attr_names = re.split(" +", lines[1])
+        anno_df = pd.DataFrame(columns=attr_names, index=range(n))
+        filenames = []
+        for i in range(n):
+            line_data = re.split(" +", lines[i + 2])
+            anno_df.loc[i] = line_data[1:]
+            filenames.append(line_data[0])
+
+    transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
+    features = get_images(paths=filenames, transform=transform)
+
+    # Using Blond_Hair as the label and Male as the confounding attribute
+    labels = torch.LongTensor(anno_df['Blond_Hair'].values > 0, device=device)
+    subclasses = torch.LongTensor(2 * (anno_df['Blond_Hair'].values > 0) + (anno_df['Male'].values > 0), device=device)
+
+    train_idx = []
+    val_idx = []
+    test_idx = []
+    with open(path + 'list_eval_partition.txt') as f:
+        lines = f.readlines()
+        for i in range(len(lines)):
+            # No header line(s)
+            # Evaluation status is at index 1 of each line
+            split = int(re.split(" +", lines[i])[1])
+            # Store status as binary values in three lists for easy indexing later
+            train_idx.append(split == 0)
+            val_idx.append(split == 1)
+            test_idx.append(split == 2)
+
+    train_dataset = SubclassedDataset(features[train_idx], labels[train_idx], subclasses[train_idx])
+    val_dataset = SubclassedDataset(features[val_idx], labels[val_idx], subclasses[val_idx])
+    test_dataset = SubclassedDataset(features[test_idx], labels[test_idx], subclasses[test_idx])
+
+    return train_dataset, val_dataset, test_dataset
+
 
 def get_dataloaders(datasets, batch_size, reweight_train=False, split=False, proportion=0.5, seed=None):
     train_dataset, val_dataset, test_dataset = datasets
@@ -287,19 +310,13 @@ def split_dataset(dataset, proportion=0.5, seed=None):
     return SubDataset(indices_1, dataset), SubDataset(indices_2, dataset)
 
 
-
-
-
 def get_partitioned_dataloader(dataset, batch_size, proportion=0.5, seed=None):
-   
     dataset0, dataset1 = split_dataset(dataset, proportion=proportion, seed=seed)
 
-    dataloader = PartitionedDataLoader(dataset0, int(batch_size * proportion), 
-                                       dataset1, int(batch_size * (1-proportion)),
+    dataloader = PartitionedDataLoader(dataset0, int(batch_size * proportion),
+                                       dataset1, int(batch_size * (1 - proportion)),
                                        replacement0=False, drop_last0=False,
-                                       replacement1=True, drop_last1=True, 
-                                       weights1 = get_sampler_weights(dataset1.subclasses))
-                                       
+                                       replacement1=True, drop_last1=True,
+                                       weights1=get_sampler_weights(dataset1.subclasses))
+
     return dataloader
-
-

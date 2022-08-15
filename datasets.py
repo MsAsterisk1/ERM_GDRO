@@ -1,7 +1,5 @@
-import numpy as np
 import torch
 from torch.utils.data import Dataset
-from PIL import Image
 
 root = './data/'
 
@@ -35,6 +33,10 @@ class SubclassedDataset(Dataset):
 
 
 class SubDataset(Dataset):
+    """
+    Used to get a consistent subset of a dataset
+    Torch's built-in Subset is unsuitable because it does not allow for subclass data
+    """
 
     def __init__(self, indices, dataset):
         self.indices = indices
