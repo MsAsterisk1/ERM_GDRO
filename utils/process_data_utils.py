@@ -160,13 +160,12 @@ def get_MNIST_datasets(device='cpu', path='data/mnist/', rng=np.random.default_r
     return train_dataset, val_dataset, test_dataset
 
 
-def get_images(root, paths, transform=transforms.ToTensor()):
+def get_images(root, paths, transform=transforms.ToTensor(), device='cpu'):
     img_tensors = []
     for img_path in paths:
         print(img_path)
-        # image tensors go on CPU RAM until the model needs to move them to GPU
         img = Image.open(root + img_path)
-        img_tensors.append(transform(img).to('cpu'))
+        img_tensors.append(transform(img).to(device))
         img.close()
     return torch.stack(img_tensors)
 
@@ -175,7 +174,7 @@ def get_waterbirds_datasets(device='cpu', path='data/waterbirds_v1.0/'):
     metadata_df = pd.read_csv(path + 'metadata.csv')
 
     transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
-    features = get_images(root=path, paths=metadata_df['img_filename'].values, transform=transform)
+    features = get_images(root=path, paths=metadata_df['img_filename'].values, transform=transform, device=device)
 
     # column 2: image label (bird type)
     labels = torch.LongTensor(metadata_df.iloc[:, 2].values).squeeze().to(device)
