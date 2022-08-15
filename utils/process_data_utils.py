@@ -210,8 +210,12 @@ def get_celeba_datasets(device='cpu', path='data/celeba/'):
     features = get_images(root=path, paths=filenames, transform=transform)
 
     # Using Blond_Hair as the label and Male as the confounding attribute
-    labels = torch.LongTensor(anno_df['Blond_Hair'].values > 0, device=device)
-    subclasses = torch.LongTensor(2 * (anno_df['Blond_Hair'].values > 0) + (anno_df['Male'].values > 0), device=device)
+    labels = torch.LongTensor(anno_df['Blond_Hair'].values.astype(int) > 0, device=device)
+    subclasses = torch.LongTensor(
+        2 * (anno_df['Blond_Hair'].values.astype(int) > 0) +
+        (anno_df['Male'].values.astype(int) > 0),
+        device=device
+    )
 
     train_idx = []
     val_idx = []
