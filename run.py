@@ -139,7 +139,6 @@ accuracies = {}
 if args.multiclass:
     train_dataset.labels = train_dataset.subclasses
     val_dataset.labels = val_dataset.subclasses
-    test_dataset.labels = test_dataset.subclasses
 
 for loss_fn in args.loss:
     if verbose:
