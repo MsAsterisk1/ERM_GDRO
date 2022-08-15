@@ -84,6 +84,21 @@ elif args.dataset == 'civilcomments':
         'gradient_clip': 1,
         'vector_subclass': True
     }
+elif args.dataset == 'celeba':
+    train_dataset, val_dataset, test_dataset = utils.get_celeba_datasets(device=device)
+    batch_size = (128, 128)
+
+    num_subclasses = 4
+
+    run_trials_args = {
+        'model_class': models.TransferModel50,
+        'model_args': {'device': device, 'freeze': False},
+        'epochs': 50,
+        'optimizer_class': torch.optim.SGD,
+        'optimizer_args': {'lr': 0.0001, 'weight_decay': 0.0001, 'momentum': 0.9},
+        'num_subclasses': num_subclasses,
+    }
+
 
 trials = int(args.trials)
 run_trials_args['num_trials'] = trials

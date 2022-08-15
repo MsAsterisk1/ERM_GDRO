@@ -121,24 +121,6 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
     return datasets
 
 
-# def get_CivilComments_DataLoaders(CC_df=None, datasets=None, gdro=False):
-#     if datasets is None:
-#         datasets = get_CivilComments_Datasets(CC_df=CC_df)
-
-#     dataloaders = []
-
-#     if gdro:
-#         subclass_weights = get_sampler_weights(datasets[0].subclasses)
-#         train = InfiniteDataLoader(datasets[0], batch_size=16, weights=subclass_weights)
-#     else: #ERM
-#         train = InfiniteDataLoader(datasets[0], batch_size=16, replacement=False, drop_last=False)
-
-#     cv = InfiniteDataLoader(datasets[1], batch_size=32, replacement=False, drop_last=False)
-#     test = InfiniteDataLoader(datasets[2], batch_size=32, replacement=False, drop_last=False)
-
-#     return train, cv, test
-
-
 def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
     train_images = np.fromfile('data/mnist/train-images.idx3-ubyte', dtype='>u1')[16:]
     train_labels = np.fromfile('data/mnist/train-labels.idx1-ubyte', dtype='>u1')[8:]
@@ -177,16 +159,6 @@ def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
 
     return train_dataset, val_dataset, test_dataset
 
-
-# def get_MNIST_dataloaders(batch_size, device='cpu', seed=None):
-#     train_dataset, val_dataset, test_dataset = get_MNIST_datasets(device=device,
-#                                                                   rng=np.random.default_rng(seed))
-#
-#     train_dataloader = InfiniteDataLoader(train_dataset, batch_size=batch_size)
-#     val_dataloader = InfiniteDataLoader(val_dataset, batch_size=batch_size)
-#     test_dataloader = InfiniteDataLoader(test_dataset, replacement=False, batch_size=len(test_dataset))
-#
-#     return train_dataloader, val_dataloader, test_dataloader
 
 def get_images(paths, transform=transforms.ToTensor()):
     img_tensors = []
