@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 from torchvision import transforms
 
-from datasets import SubclassedDataset, OnDemandImageDataset, SubDataset
+from datasets import SubclassedDataset, SubDataset
 from dataloaders import InfiniteDataLoader, PartitionedDataLoader
 from transformers import DistilBertTokenizer
 
