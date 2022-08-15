@@ -111,18 +111,29 @@ class ERMGDROLoss:
         return self.compute_loss(preds, y, c)
 
 
-class UpweightLoss:
-    """
-    Loss function which takes a weighted average of the losses over each subclasses, weighted by the inverse of the size of the subclass
-    In other words, UpweightLoss upweights the loss of small subclasses as compared to larger ones.
-    Equivalent to gDRO with eta=0
-    """
-    def __init__(self, model, loss_fn, num_subclasses):
-        # wraps a GDROLoss with eta=0
-        self.gdro = GDROLoss(model, loss_fn, eta=0, num_subclasses=num_subclasses)
+class CRISLoss:
+    def __init__(self, model, loss_fn, eta, num_subclasses):
+        self.erm = ERMLoss(model, loss_fn)
+        self.gdro = GDROLoss(model, loss_fn, eta, num_subclasses)
+        self.model = model
+        self.erm_mode = True
 
     def compute_loss(self, preds, y, c):
-        return self.gdro.compute_loss(preds, y, c)
+        if self.erm_mode:
+            return self.erm.compute_loss(preds, y)
+        else:
+            return self.gdro.compute_loss(preds, y, c)
+
+    def reset_gdro(self):
+        self.gdro = GDROLoss(self.gdro.model, self.gdro.loss_fn, self.gdro.eta, self.gdro.num_subclasses)
+
+    def toggle_mode(self):
+        self.erm_mode = not self.erm_mode
+        self.model.set_grad('featurizer', self.erm_mode)
 
     def __call__(self, minibatch):
-        return self.gdro(minibatch)
+        X, y, c = minibatch
+
+        preds = self.model(X)
+
+        return self.compute_loss(preds, y, c)

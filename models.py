@@ -68,7 +68,6 @@ class TransferModel50(nn.Module):
         super(TransferModel50, self).__init__()
 
         self.device = device
-        self.toggle_grad = False
 
         if pretrained:
             self.model = torchvision.models.resnet50(pretrained=True).to(device)
@@ -92,14 +91,15 @@ class TransferModel50(nn.Module):
         x = x.to(self.device)
         return self.model(x).squeeze()
 
-    def toggle_featurizer(self):
-
-        for name, param in self.model.named_parameters():
-            if name == 'fc.0.weight':
-                break
-            param.requires_grad = self.toggle_grad
-
-        self.toggle_grad = not self.toggle_grad
+    def set_grad(self, layer, requires_grad):
+        if layer == 'featurizer':
+            for name, param in self.model.named_parameters():
+                if name == 'fc.0.weight':
+                    break
+                param.requires_grad = requires_grad
+        else:
+            for param in self.model.fc.parameters():
+                param.requires_grad = requires_grad
 
 
 class BertClassifier(nn.Module):
@@ -109,20 +109,19 @@ class BertClassifier(nn.Module):
         self.bert = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_labels).to(device)
         self.device = device
 
-        self.toggle_grad = False
-
     def forward(self, X):
         X = X.to(self.device)
         input_id = X[:,0] 
         mask = X[:,1]
         return self.bert(input_ids= input_id, attention_mask=mask)[0]
 
-    def toggle_featurizer(self):
+    def set_grad(self, layer, requires_grad):
+        if layer == 'featurizer':
+            for param in self.bert.distilbert.parameters():
+                param.requires_grad = requires_grad
+        else:
+            for param in self.bert.pre_classifier.parameters():
+                param.requires_grad = requires_grad
 
-        for param in self.bert.distilbert.parameters():
-            param.requires_grad = self.toggle_grad
-
-        self.toggle_grad = not self.toggle_grad
-
-
-
+            for param in self.bert.classifier.parameters():
+                param.requires_grad = requires_grad
