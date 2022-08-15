@@ -21,7 +21,7 @@ def train_batch(minibatch, model, loss_fn, optimizer, scheduler=None, gradient_c
     if scheduler is not None:
         scheduler.step()
 
-def split_train(dataloader, model, loss_fns, optimizers, gradient_clip=None):
+def split_train(dataloader, model, loss_fns, optimizers, ERMmode=False, gradient_clip=None):
 
     model.train()
 
@@ -31,15 +31,19 @@ def split_train(dataloader, model, loss_fns, optimizers, gradient_clip=None):
 
         X, y, c = next(dataloader)
 
-        #Train classifier with GDRO
-        model.set_grad('featurizer', False)
-        train_batch((X[1],y[1],c[1]), model, loss_fns[1], optimizers[1])
-        model.set_grad('featurizer', True)
+        if ERMmode:
+            train_batch((X[0],y[0],c[0]), model, loss_fns[0], optimizers[0])
+        else:
 
-        #Train featurizer with ERM
-        model.set_grad('classifier', False)
-        train_batch((X[0],y[0],c[0]), model, loss_fns[0], optimizers[0])
-        model.set_grad('classifier', True)
+            #Train classifier with GDRO
+            model.set_grad('featurizer', False)
+            train_batch((X[1],y[1],c[1]), model, loss_fns[1], optimizers[1])
+            model.set_grad('featurizer', True)
+
+            #Train featurizer with ERM
+            model.set_grad('classifier', False)
+            train_batch((X[0],y[0],c[0]), model, loss_fns[0], optimizers[0])
+            model.set_grad('classifier', True)
 
 
 
@@ -212,7 +216,12 @@ def train_epochs(epochs,
         #     scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
 
         loss_fns = (loss_fn.erm, loss_fn.gdro)
-        split_train(train_dataloader, model, loss_fns, optimizer, gradient_clip=None)
+
+
+        if epochs < 20:
+            split_train(train_dataloader, model, loss_fns, optimizer, ERMmode=True, gradient_clip=None)
+        else:
+            split_train(train_dataloader, model, loss_fns, optimizer, gradient_clip=None)
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass, verbose=verbose)

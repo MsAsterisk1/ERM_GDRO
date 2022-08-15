@@ -34,7 +34,7 @@ if args.dataset == 'waterbirds':
     train_dataset, val_dataset, test_dataset = utils.get_waterbirds_datasets(device=device)
     print('got data')
     # From Distributionally Robust Neural Networks
-    batch_size = (128, 128)
+    batch_size = (256, 256)
     eta = 0.01
     num_subclasses = 4
 
