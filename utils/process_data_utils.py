@@ -163,6 +163,7 @@ def get_MNIST_datasets(device='cpu', path='data/mnist/', rng=np.random.default_r
 def get_images(root, paths, transform=transforms.ToTensor()):
     img_tensors = []
     for img_path in paths:
+        print(img_path)
         # image tensors go on CPU RAM until the model needs to move them to GPU
         img = Image.open(root + img_path)
         img_tensors.append(transform(img).to('cpu'))
