@@ -204,17 +204,17 @@ def get_celeba_datasets(device='cpu', path='data/celeba/'):
         filenames = []
         for i in range(n):
             line_data = re.split(" +", lines[i + 2])
-            anno_df.loc[i] = line_data[1:]
+            anno_df.loc[i] = np.array(line_data[1:], dtype=int)
             filenames.append(line_data[0])
 
     transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
     features = get_images(root=path, paths=filenames, transform=transform)
 
     # Using Blond_Hair as the label and Male as the confounding attribute
-    labels = torch.LongTensor(anno_df['Blond_Hair'].values.astype(int) > 0, device=device)
+    labels = torch.LongTensor(anno_df['Blond_Hair'].values > 0, device=device)
     subclasses = torch.LongTensor(
-        2 * (anno_df['Blond_Hair'].values.astype(int) > 0) +
-        (anno_df['Male'].values.astype(int) > 0),
+        2 * (anno_df['Blond_Hair'].values > 0) +
+        (anno_df['Male'].values > 0),
         device=device
     )
 
