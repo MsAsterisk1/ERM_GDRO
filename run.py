@@ -1,5 +1,5 @@
 import torch
-from loss import ERMLoss, GDROLoss, UpweightLoss, ERMGDROLoss
+from loss import ERMLoss, GDROLoss, ERMGDROLoss
 import models
 import utils.process_data_utils as utils
 from train_eval import run_trials
@@ -78,9 +78,9 @@ elif args.dataset == 'civilcomments':
         'optimizer_args': {'lr': 0.00001, 'weight_decay': 0.01},
         'num_subclasses': 18,
         'scheduler_class': transformers.get_linear_schedule_with_warmup,
-        'scheduler_args': {'num_warmup_steps':0, 'num_training_steps':num_training_steps},
+        'scheduler_args': {'num_warmup_steps': 0, 'num_training_steps': num_training_steps},
         'gradient_clip': 1,
-        'vector_subclass':True
+        'vector_subclass': True
     }
 
 trials = int(args.trials)

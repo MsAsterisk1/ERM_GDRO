@@ -34,51 +34,6 @@ class SubclassedDataset(Dataset):
         return self.features[idx], self.labels[idx], self.subclasses[idx]
 
 
-class OnDemandImageDataset(Dataset):
-    """
-    This class was originally created to load data from waterbirds, so it may be necessary to modify the code below to refer to the correct columns in the metadata dataframe
-    """
-
-    def __init__(self, metadata, root_dir, transform, device):
-        """
-        :param metadata: dataframe storing the image paths, labels, and subclasses
-        :param root_dir: the directory where the image files are stored
-        :param transform: the transform to apply to the image when it is loaded
-        :param device to move tensors to as they are loaded
-        """
-
-        self.root_dir = root_dir
-        self.transform = transform
-        self.device = device
-
-        img_tensors = []
-        for i in range(len(metadata)):
-            img_path = metadata.iloc[i, 1]
-            # image tensors go on CPU RAM until the model needs to move them to GPU
-            img = Image.open(self.root_dir + img_path)
-            img_tensors.append(transform(img).to('cpu'))
-            img.close()
-        self.features = torch.stack(img_tensors)
-
-        # column 2: image label
-        self.labels = torch.LongTensor(metadata.iloc[:, 2].values).squeeze().to(self.device)
-        # column 4 contains the confounding label, which is combined with column 2 to get the subclass
-        self.subclasses = torch.LongTensor(2 * metadata.iloc[:, 2].values + metadata.iloc[:, 4].values).squeeze().to(
-            self.device)
-
-    def __len__(self):
-        return len(self.labels)
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        label = self.labels[idx]
-        subclass = self.subclasses[idx]
-
-        return self.features[idx], label, subclass
-
-
 class SubDataset(Dataset):
 
     def __init__(self, indices, dataset):

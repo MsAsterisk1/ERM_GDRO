@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 # from wilds import get_dataset
+from PIL import Image
 from torchvision import transforms
 
 from datasets import SubclassedDataset, OnDemandImageDataset, SubDataset
@@ -194,13 +195,28 @@ def get_waterbirds_datasets(device='cpu'):
     transform = transforms.Compose(
         [transforms.Resize((224, 224)), transforms.ToTensor()]
     )
-    train_df = metadata_df[metadata_df['split'] == 0]
-    val_df = metadata_df[metadata_df['split'] == 1]
-    test_df = metadata_df[metadata_df['split'] == 1]
 
-    train_dataset = OnDemandImageDataset(train_df, path, transform, device)
-    val_dataset = OnDemandImageDataset(val_df, path, transform, device)
-    test_dataset = OnDemandImageDataset(test_df, path, transform, device)
+    img_tensors = []
+    for i in range(len(metadata_df)):
+        img_path = metadata_df.iloc[i, 1]
+        # image tensors go on CPU RAM until the model needs to move them to GPU
+        img = Image.open(path + img_path)
+        img_tensors.append(transform(img).to('cpu'))
+        img.close()
+    features = torch.stack(img_tensors)
+
+    # column 2: image label (bird type)
+    labels = torch.LongTensor(metadata_df.iloc[:, 2].values).squeeze().to(device)
+    # column 4 contains the confounding label (place), which is combined with column 2 to get the subclass
+    subclasses = torch.LongTensor(2*metadata_df.iloc[:, 2].values + metadata_df.iloc[:, 4].values).squeeze().to(device)
+
+    train_idx = metadata_df['split'] == 0
+    val_idx = metadata_df['split'] == 1
+    test_idx = metadata_df['split'] == 2
+
+    train_dataset = SubclassedDataset(features[train_idx], labels[train_idx], subclasses[train_idx])
+    val_dataset = SubclassedDataset(features[val_idx], labels[val_idx], subclasses[val_idx])
+    test_dataset = SubclassedDataset(features[test_idx], labels[test_idx], subclasses[test_idx])
 
     return train_dataset, val_dataset, test_dataset
 
