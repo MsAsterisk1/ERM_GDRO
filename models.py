@@ -68,6 +68,7 @@ class TransferModel50(nn.Module):
         super(TransferModel50, self).__init__()
 
         self.device = device
+        self.toggle_grad = False
 
         if pretrained:
             self.model = torchvision.models.resnet50(pretrained=True).to(device)
@@ -83,13 +84,22 @@ class TransferModel50(nn.Module):
             nn.Linear(in_features=2048, out_features=2, bias=True, device=device),
         )
 
-        for layer in self.model.fc:
-            if hasattr(layer, 'weight'):
-                nn.init.xavier_uniform_(layer.weight)
+        # for layer in self.model.fc:
+        #     if hasattr(layer, 'weight'):
+        #         nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
         x = x.to(self.device)
         return self.model(x).squeeze()
+
+    def toggle_featurizer(self):
+
+        for name, param in self.model.named_parameters():
+            if name == 'fc.0.weight':
+                break
+            param.requires_grad = self.toggle_grad
+
+        self.toggle_grad = not self.toggle_grad
 
 
 class BertClassifier(nn.Module):
@@ -99,10 +109,20 @@ class BertClassifier(nn.Module):
         self.bert = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=num_labels).to(device)
         self.device = device
 
+        self.toggle_grad = False
+
     def forward(self, X):
         X = X.to(self.device)
         input_id = X[:,0] 
         mask = X[:,1]
         return self.bert(input_ids= input_id, attention_mask=mask)[0]
+
+    def toggle_featurizer(self):
+
+        for param in self.bert.distilbert.parameters():
+            param.requires_grad = self.toggle_grad
+
+        self.toggle_grad = not self.toggle_grad
+
 
 

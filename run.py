@@ -16,6 +16,8 @@ parser.add_argument('--trials', default=5)
 parser.add_argument('--test_name', default='test')
 parser.add_argument('--device', default="0" if torch.cuda.is_available() else "cpu")
 parser.add_argument('--verbose', action='store_true')
+parser.add_argument('--prop', action='store_true')
+
 
 args = parser.parse_args()
 
@@ -106,11 +108,11 @@ erm_args = {'loss_fn': torch.nn.CrossEntropyLoss()}
 gdro_class = GDROLoss
 gdro_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses}
 upweight_class = ERMLoss
-upweight_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'num_subclasses': num_subclasses}
+upweight_args = {'loss_fn': torch.nn.CrossEntropyLoss()}
 mix25_class = ERMGDROLoss
 mix25_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.25, 'partitioned': True}
 mix50_class = ERMGDROLoss
-mix50_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.50, 'partitioned': True}
+mix50_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.50, 'partitioned': True, 'prop':args.prop}
 mix75_class = ERMGDROLoss
 mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.75, 'partitioned': True}
 
