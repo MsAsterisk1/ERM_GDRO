@@ -121,11 +121,11 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
     return datasets
 
 
-def get_MNIST_datasets(device='cpu', rng=np.random.default_rng()):
-    train_images = np.fromfile('data/mnist/train-images.idx3-ubyte', dtype='>u1')[16:]
-    train_labels = np.fromfile('data/mnist/train-labels.idx1-ubyte', dtype='>u1')[8:]
-    test_images = np.fromfile('data/mnist/t10k-images.idx3-ubyte', dtype='>u1')[16:]
-    test_labels = np.fromfile('data/mnist/t10k-labels.idx1-ubyte', dtype='>u1')[8:]
+def get_MNIST_datasets(device='cpu', path='data/mnist/', rng=np.random.default_rng()):
+    train_images = np.fromfile(path + 'train-images.idx3-ubyte', dtype='>u1')[16:]
+    train_labels = np.fromfile(path + 'train-labels.idx1-ubyte', dtype='>u1')[8:]
+    test_images = np.fromfile(path + 't10k-images.idx3-ubyte', dtype='>u1')[16:]
+    test_labels = np.fromfile(path + 't10k-labels.idx1-ubyte', dtype='>u1')[8:]
 
     train_images = np.reshape(train_images, (-1, 28 * 28))
     test_images = np.reshape(test_images, (-1, 28 * 28))
@@ -170,8 +170,7 @@ def get_images(paths, transform=transforms.ToTensor()):
     return torch.stack(img_tensors)
 
 
-def get_waterbirds_datasets(device='cpu'):
-    path = 'data/waterbirds_v1.0/'
+def get_waterbirds_datasets(device='cpu', path='data/waterbirds_v1.0/'):
     metadata_df = pd.read_csv(path + 'metadata.csv')
 
     transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
@@ -194,8 +193,7 @@ def get_waterbirds_datasets(device='cpu'):
     return train_dataset, val_dataset, test_dataset
 
 
-def get_celeba_datasets(device='cpu'):
-    path = 'data/celeba/'
+def get_celeba_datasets(device='cpu', path='data/celeba/'):
 
     with open(path + 'list_attr_celeba.txt') as f:
         lines = f.readlines()
