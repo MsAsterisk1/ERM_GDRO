@@ -8,10 +8,11 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--file_name', default='features')
-parser.add_argument('-d', '--device', default="0" if torch.cuda.is_available() else "cpu")
+parser.add_argument('-d', '--device', default='0' if torch.cuda.is_available() else 'cpu')
 parser.add_argument('-v', '--verbose', action='store_true')
 parser.add_argument('-r', '--reweight_train', action='store_true')
 parser.add_argument('-s', '--subclass_label', action='store_true')
+parser.add_argument('-l', '--loss_function', default='ERM')
 
 
 args = parser.parse_args()
@@ -37,7 +38,12 @@ train_dataloader, val_dataloader, test_dataloader = get_dataloaders((train_datas
 epochs = 131
 
 model = TransferModel50(device=device, num_labels=num_labels)
-loss_fn = ERMLoss(model, torch.nn.CrossEntropyLoss())
+if args.loss_function == 'ERM':
+    loss_fn = ERMLoss(model, torch.nn.CrossEntropyLoss())
+else:
+    loss_fn = GDROLoss(model, torch.nn.CrossEntropyLoss(), eta=eta, num_subclasses=num_subclasses)
+
+
 optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, weight_decay=0.0001, momentum=0.9)
 
 train_epochs(epochs, train_dataloader, val_dataloader, test_dataloader, model, loss_fn, optimizer, verbose=args.verbose, num_subclasses=num_subclasses)
