@@ -3,6 +3,7 @@ from re import sub
 import torch
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 # from wilds import get_dataset
 from PIL import Image
@@ -164,7 +165,7 @@ def get_MNIST_datasets(device='cpu', path='data/mnist/', rng=np.random.default_r
 
 def get_images(root, paths, transform=transforms.ToTensor(), device='cpu'):
     img_tensors = []
-    for img_path in paths:
+    for img_path in tqdm(paths):
         img = Image.open(root + img_path)
         img_tensors.append(transform(img).to(device))
         img.close()

@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch import nn
 from loss import GDROLoss, CRISLoss
+from tqdm import tqdm
 
 
 def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, scheduler=None, gradient_clip=None):
@@ -166,7 +167,7 @@ def train_epochs(epochs,
     # val_overall = 0.72950991 * v[0] + 0.03837331 * v[1] + 0.01167883 * v[2] + 0.22043796 * v[3]
     # vals.append(min(v))
 
-    for epoch in range(epochs):
+    for epoch in tqdm(range(epochs)):
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
