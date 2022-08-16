@@ -29,7 +29,7 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, s
         loss.backward()
 
         if gradient_clip is not None:
-            torch.nn.utils.clip_grad_norm_(model.parameters(),gradient_clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), gradient_clip)
 
         optimizer.step()
 
@@ -42,7 +42,7 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, s
         print("Average training loss:", avg_loss)
 
 
-def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=False, verbose=False):
+def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=False, verbose=False, multiclass=False):
     """
     Evaluate the model's accuracy and subclass sensitivities
     :param dataloader: The dataloader for the validation/testing data
@@ -77,13 +77,23 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=
                 num_samples[subclass] += torch.sum(subclass_idx)
 
                 if torch.sum(subclass_idx) > 0:
-                    # subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(torch.float).sum().item()
-                    subgroup_correct[subclass] += ((pred[subclass_idx].argmax(1) > 1) == y[subclass_idx]).type(torch.float).sum().item()
+                    if multiclass:
+                        # Assumes that the first half of the subtypes is class 0 and the second half is class 1
+                        # Also assumes that unlike during training, y refers to the superclass labels
+                        subgroup_correct[subclass] += (
+                                    (pred[subclass_idx].argmax(1) >= num_subclasses // 2) == y[subclass_idx]).type(
+                            torch.float).sum().item()
+                    else:
+                        subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(
+                            torch.float).sum().item()
 
-            accuracy += ((pred.argmax(1) > 1) == y).type(torch.float).sum().item()
+            if multiclass:
+                accuracy += ((pred.argmax(1) > 1) == y).type(torch.float).sum().item()
+            else:
+                accuracy += (pred.argmax(1) == y).type(torch.float).sum().item()
             if get_loss:
                 # accumulate loss over entire epoch
-                loss += loss_fn(pred, y)
+                loss += loss_fn(pred, c if multiclass else y)
 
         if get_loss:
             loss /= steps_per_epoch
@@ -91,17 +101,17 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=
 
         accuracy /= len(dataloader.dataset)
 
-
     if verbose:
         if get_loss:
-            print('Loss:', loss.item(), "Accuracy:", accuracy, "\nAccuracy over subgroups:", subgroup_accuracy, "\nWorst Group Accuracy:",
-              min(subgroup_accuracy))
+            print('Loss:', loss.item(), "Accuracy:", accuracy, "\nAccuracy over subgroups:", subgroup_accuracy,
+                  "\nWorst Group Accuracy:",
+                  min(subgroup_accuracy))
         else:
             print("Accuracy:", accuracy, "\nAccuracy over subgroups:", subgroup_accuracy, "\nWorst Group Accuracy:",
-              min(subgroup_accuracy))
+                  min(subgroup_accuracy))
     if get_loss:
         return (loss, accuracy, *subgroup_accuracy)
-    
+
     return (accuracy, *subgroup_accuracy)
 
 
@@ -118,7 +128,7 @@ def train_epochs(epochs,
                  record=False,
                  save_weights_name=None,
                  num_subclasses=1,
-                 gradient_clip = None,
+                 gradient_clip=None,
                  sub_batches=1):
     """
     Trains the model for a number of epochs and evaluates the model at each epoch
@@ -136,7 +146,9 @@ def train_epochs(epochs,
     :return: A list containing the overall accuracy and subclass sensitivities for each epoch, arranged 1-dimensionally ex. [accuracy_1, subclass1_1, subclass2_1, accuracy_2, subclass1_2, subclass2_2...]
     """
     if record:
-        accuracies = list(evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass, verbose=verbose))
+        accuracies = list(
+            evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass,
+                     verbose=verbose))
         q_data = None
         if isinstance(loss_fn, GDROLoss):
             q_data = loss_fn.q.tolist()
@@ -145,20 +157,23 @@ def train_epochs(epochs,
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
-        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches, scheduler=scheduler, gradient_clip=gradient_clip)
+        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches,
+              scheduler=scheduler, gradient_clip=gradient_clip)
         # if scheduler:
         #     scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
 
         if record:
-            epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass, verbose=verbose)
+            epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses,
+                                        vector_subclass=vector_subclass, verbose=verbose)
             accuracies.extend(epoch_accuracies)
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(loss_fn.q.tolist())
 
         if save_weights_name is not None:
             print(f'For Cross Val:')
-            _ = evaluate(val_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True, verbose=True)
-            torch.save(model.state_dict(), f'./epoch_{epoch+1}_{save_weights_name}.wt')
+            _ = evaluate(val_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True,
+                         verbose=True)
+            torch.save(model.state_dict(), f'./epoch_{epoch + 1}_{save_weights_name}.wt')
 
     if record:
         return accuracies, q_data
@@ -182,7 +197,7 @@ def run_trials(num_trials,
                scheduler_args=None,
                verbose=False,
                record=False,
-               gradient_clip = None,
+               gradient_clip=None,
                sub_batches=1,
                vector_subclass=False):
     """
@@ -244,7 +259,7 @@ def run_trials(num_trials,
                                      verbose=verbose,
                                      record=record,
                                      num_subclasses=num_subclasses,
-                                     gradient_clip = gradient_clip,
+                                     gradient_clip=gradient_clip,
                                      sub_batches=sub_batches,
                                      vector_subclass=vector_subclass
                                      )
