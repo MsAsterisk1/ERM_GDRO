@@ -1,0 +1,85 @@
+import pandas as pd
+from utils.process_data_utils import  get_dataloaders, get_waterbirds_datasets, split_dataset, get_partitioned_dataloader
+from loss import ERMLoss, GDROLoss, ERMGDROLoss
+from train_eval import train, evaluate, train_epochs
+import torch
+from models import TransferModel50
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-f', '--file_name', default='features')
+parser.add_argument('-d', '--device', default="0" if torch.cuda.is_available() else "cpu")
+parser.add_argument('-v', '--verbose', action='store_true')
+
+parser.add_argument('-s', '--subclass_label', action='store_true')
+
+
+args = parser.parse_args()
+
+if args.device == 'cpu':
+    device = 'cpu'  # "cuda" if torch.cuda.is_available() else "cpu"
+else:
+    torch.cuda.set_device(int(args.device))
+    device = 'cuda'
+
+
+
+
+batch_size = (128, 128)
+eta = 0.01
+num_subclasses = 4
+num_labels = 4 if args.subclass_label else 2
+
+train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device, subclass_label=args.subclass_label)
+train_dataloader, val_dataloader, test_dataloader = get_dataloaders((train_dataset, val_dataset, test_dataset), batch_size=batch_size)
+
+
+epochs = 131
+
+model = TransferModel50(device=device, num_labels=num_labels)
+loss_fn = ERMLoss(model, torch.nn.CrossEntropyLoss())
+optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, weight_decay=0.0001, momentum=0.9)
+
+train_epochs(epochs, train_dataloader, val_dataloader, test_dataloader, model, loss_fn, optimizer, verbose=args.verbose, num_subclasses=num_subclasses)
+
+activation = {}
+def get_activation(name):
+    def hook(model, input, output):
+        activation[name] = output.detach()
+    return hook
+
+model.model.avgpool.register_forward_hook(get_activation('avgpool'))
+
+model.eval()
+
+features = []
+labels = []
+
+for _ in range(test_dataloader.batches_per_epoch()):
+    X,y,c = next(test_dataloader)
+
+    model(X)
+    img_features = activation['avgpool'].squeeze()
+    features.extend(torch.unbind(img_features))
+
+    labels.extend(c.int().tolist())
+
+
+for _ in range(val_dataloader.batches_per_epoch()):
+    X,y,c = next(val_dataloader)
+
+    model(X)
+    img_features = activation['avgpool'].squeeze()
+    features.extend(torch.unbind(img_features))
+
+    labels.extend(c.int().tolist())
+
+cols = []
+for idx,label in enumerate(labels):
+    cols.append([label] + features[idx].cpu().numpy().tolist())
+
+df_feats = pd.DataFrame(cols).rename({0:'label'}, axis=1)
+
+df_feats.to_csv(f'{args.file_name}.csv')
+
+
