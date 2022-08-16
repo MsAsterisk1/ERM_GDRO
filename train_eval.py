@@ -42,7 +42,7 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, s
         print("Average training loss:", avg_loss)
 
 
-def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replacement=False, get_loss=False, verbose=False):
+def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=False, verbose=False):
     """
     Evaluate the model's accuracy and subclass sensitivities
     :param dataloader: The dataloader for the validation/testing data
@@ -56,64 +56,40 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, replaceme
     num_samples = np.zeros(num_subclasses)
     subgroup_correct = np.zeros(num_subclasses)
     with torch.no_grad():
+        steps_per_epoch = dataloader.batches_per_epoch()
+        accuracy = 0
+        if get_loss:
+            loss = 0
+            loss_fn = torch.nn.CrossEntropyLoss()
 
-        if replacement: #if dataloader samples with replacement, can only use dataset
-            X = dataloader.dataset.features
-
-            y = dataloader.dataset.labels
-            c = dataloader.dataset.subclasses
+        for i in range(steps_per_epoch):
+            minibatch = next(dataloader)
+            X, y, c = minibatch
 
             pred = model(X)
 
             for subclass in range(num_subclasses):
                 if vector_subclass:
-                    subclass_idx = c[:,subclass] == 1
+                    subclass_idx = c[:, subclass] == 1
                 else:
                     subclass_idx = c == subclass
 
                 num_samples[subclass] += torch.sum(subclass_idx)
-                subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(
-                    torch.float).sum().item()
-            
-            subgroup_accuracy = subgroup_correct / num_samples
-            accuracy = (pred.argmax(1) == y).type(
-            torch.float).sum().item()/ len(y)
 
-        else: #if dataloader does not replace, can use batches
-            steps_per_epoch = dataloader.batches_per_epoch()
-            accuracy = 0
+                if torch.sum(subclass_idx) > 0:
+                    # subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(torch.float).sum().item()
+                    subgroup_correct[subclass] += ((pred[subclass_idx].argmax(1) > 1) == y[subclass_idx]).type(torch.float).sum().item()
+
+            accuracy += ((pred.argmax(1) > 1) == y).type(torch.float).sum().item()
             if get_loss:
-                loss = 0
-                loss_fn = torch.nn.CrossEntropyLoss()
+                # accumulate loss over entire epoch
+                loss += loss_fn(pred, y)
 
-            for i in range(steps_per_epoch):
-                minibatch = next(dataloader)
-                X,y,c = minibatch
+        if get_loss:
+            loss /= steps_per_epoch
+        subgroup_accuracy = subgroup_correct / num_samples
 
-                pred = model(X)
-
-                for subclass in range(num_subclasses):
-                    if vector_subclass:
-                        subclass_idx = c[:,subclass] == 1
-                    else:
-                        subclass_idx = c == subclass                    
-                
-                    num_samples[subclass] += torch.sum(subclass_idx)
-
-
-                    if torch.sum(subclass_idx) > 0:
-                        subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(torch.float).sum().item()
-                
-                accuracy += (pred.argmax(1) == y).type(torch.float).sum().item()
-                if get_loss:
-                    #accumulate loss over entire epoch
-                    loss += loss_fn(pred, y)
-            
-            if get_loss:
-                loss /= steps_per_epoch
-            subgroup_accuracy = subgroup_correct / num_samples
-
-            accuracy /= len(dataloader.dataset)
+        accuracy /= len(dataloader.dataset)
 
 
     if verbose:
