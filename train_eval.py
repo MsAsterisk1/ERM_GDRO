@@ -1,7 +1,7 @@
 import numpy as np
 
 import torch
-from loss import GDROLoss
+from loss import GDROLoss, CRISLoss
 
 
 def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, scheduler=None, gradient_clip=None):
@@ -157,10 +157,17 @@ def train_epochs(epochs,
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
+        if isinstance(loss_fn, CRISLoss):
+            # From CRIS
+            if epoch == 132:
+                loss_fn.toggle_mode()
+
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches,
               scheduler=scheduler, gradient_clip=gradient_clip)
-        # if scheduler:
-        #     scheduler.step(evaluate(val_dataloader, model, num_subclasses=num_subclasses)[0])
+
+        if verbose:
+            # Show validation accuracy
+            evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose)
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses,

@@ -134,6 +134,6 @@ class CRISLoss:
     def __call__(self, minibatch):
         X, y, c = minibatch
 
-        preds = self.model(X)
+        preds = self.model(X[1 - self.erm_mode])
 
-        return self.compute_loss(preds, y, c)
+        return self.compute_loss(preds, y[1 - self.erm_mode], c[1 - self.erm_mode])

@@ -1,5 +1,5 @@
 import torch
-from loss import ERMLoss, GDROLoss, ERMGDROLoss
+from loss import ERMLoss, GDROLoss, ERMGDROLoss, CRISLoss
 import models
 import utils.process_data_utils as utils
 from train_eval import run_trials
@@ -16,7 +16,7 @@ parser.add_argument('--trials', default=5)
 parser.add_argument('--test_name', default='test')
 parser.add_argument('--device', default="0" if torch.cuda.is_available() else "cpu")
 parser.add_argument('--verbose', action='store_true')
-parser.add_argument('--prop', action='store_true')
+parser.add_argument('--cris_prop', default=0.7)
 parser.add_argument('--multiclass', action='store_true')
 
 
@@ -32,7 +32,7 @@ else:
 
 if args.dataset == 'waterbirds':
 
-    train_dataset, val_dataset, test_dataset = utils.get_waterbirds_datasets(device=device)
+    train_dataset, val_dataset, test_dataset = utils.get_waterbirds_datasets(device=device, subclass_label=args.multiclass)
 
     # From Distributionally Robust Neural Networks
     batch_size = (128, 128)
@@ -48,7 +48,7 @@ if args.dataset == 'waterbirds':
         'num_subclasses': 4,
     }
 elif args.dataset == 'mnist':
-    train_dataset, val_dataset, test_dataset = utils.get_MNIST_datasets(device=device)
+    train_dataset, val_dataset, test_dataset = utils.get_MNIST_datasets(device=device, subclass_label=args.multiclass)
     batch_size = (1024, 1024)
     eta = 0.01
     num_subclasses = 10
@@ -62,7 +62,7 @@ elif args.dataset == 'mnist':
         'num_subclasses': 10,
     }
 elif args.dataset == 'civilcomments':
-    train_dataset, val_dataset, test_dataset = utils.get_CivilComments_Datasets(device=device)
+    train_dataset, val_dataset, test_dataset = utils.get_CivilComments_Datasets(device=device, subclass_label=args.multiclass)
     batch_size = (16, 128)
 
     # for gdro only train on labels as classes
@@ -86,7 +86,7 @@ elif args.dataset == 'civilcomments':
         'vector_subclass': True
     }
 elif args.dataset == 'celeba':
-    train_dataset, val_dataset, test_dataset = utils.get_celeba_datasets(device=device)
+    train_dataset, val_dataset, test_dataset = utils.get_celeba_datasets(device=device, subclass_label=args.multiclass)
     batch_size = (128, 128)
 
     num_subclasses = 4
@@ -125,20 +125,11 @@ gdro_class = GDROLoss
 gdro_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses}
 upweight_class = ERMLoss
 upweight_args = {'loss_fn': torch.nn.CrossEntropyLoss()}
-mix25_class = ERMGDROLoss
-mix25_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.25, 'partitioned': True}
-mix50_class = ERMGDROLoss
-mix50_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.50, 'partitioned': True, 'prop':args.prop}
-mix75_class = ERMGDROLoss
-mix75_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses, 't': 0.75, 'partitioned': True}
-
-losses = {'erm': (erm_class, erm_args), 'gdro': (gdro_class, gdro_args), 'upweight': (upweight_class, upweight_args), 'mix25': (mix25_class, mix25_args), 'mix50': (mix50_class, mix50_args), 'mix75': (mix75_class, mix75_args)}
+cris_class = CRISLoss
+cris_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses}
+losses = {'erm': (erm_class, erm_args), 'gdro': (gdro_class, gdro_args), 'upweight': (upweight_class, upweight_args), 'cris': (cris_class, cris_args)}
 
 accuracies = {}
-
-if args.multiclass:
-    train_dataset.labels = train_dataset.subclasses
-    val_dataset.labels = val_dataset.subclasses
 
 for loss_fn in args.loss:
     if verbose:
@@ -149,8 +140,8 @@ for loss_fn in args.loss:
         (train_dataset, val_dataset, test_dataset),
         batch_size=batch_size,
         reweight_train=reweight_train,
-        split=loss_fn.startswith('mix'),
-        proportion=0.7
+        split=loss_fn == 'cris',
+        proportion=float(args.cris_prop)
     )
 
     run_trials_args['loss_class'], run_trials_args['loss_args'] = losses[loss_fn]
