@@ -82,14 +82,14 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=
                         # Assumes that the first half of the subtypes is class 0 and the second half is class 1
                         # Also assumes that unlike during training, y refers to the superclass labels
                         subgroup_correct[subclass] += (
-                                    (pred[subclass_idx].argmax(1) >= num_subclasses // 2) == y[subclass_idx]).type(
+                                    (pred[subclass_idx].argmax(1) >= num_subclasses // 2) == (y[subclass_idx] >= num_subclasses // 2)).type(
                             torch.float).sum().item()
                     else:
                         subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(
                             torch.float).sum().item()
 
             if multiclass:
-                accuracy += ((pred.argmax(1) > 1) == y).type(torch.float).sum().item()
+                accuracy += ((pred.argmax(1) >= num_subclasses // 2) == (y >= num_subclasses // 2)).type(torch.float).sum().item()
             else:
                 accuracy += (pred.argmax(1) == y).type(torch.float).sum().item()
             if get_loss:
@@ -130,7 +130,8 @@ def train_epochs(epochs,
                  save_weights_name=None,
                  num_subclasses=1,
                  gradient_clip=None,
-                 sub_batches=1):
+                 sub_batches=1,
+                 multiclass=False):
     """
     Trains the model for a number of epochs and evaluates the model at each epoch
     :param epochs: The number of epochs to train
@@ -149,10 +150,15 @@ def train_epochs(epochs,
     if record:
         accuracies = list(
             evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass,
-                     verbose=verbose))
+                     verbose=verbose, multiclass=multiclass))
         q_data = None
         if isinstance(loss_fn, GDROLoss):
             q_data = loss_fn.q.tolist()
+
+    if isinstance(loss_fn, CRISLoss):
+        # From CRIS, 131 epochs of ERM was found to produce best results
+        # Plus 1 epoch of gDRO (gDRO produces best results with early stopping, especially when the classifier is pre-trained
+        epochs = 132
 
     for epoch in range(epochs):
         if verbose:
@@ -160,7 +166,7 @@ def train_epochs(epochs,
 
         if isinstance(loss_fn, CRISLoss):
             # From CRIS, 131 epochs of ERM was found to produce best results
-            if epoch == 3:
+            if epoch == 131:
                 # Sets CRIS to use gDRO and freezes featurizer
                 print("CRIS switching to gDRO")
                 loss_fn.toggle_mode()
@@ -181,11 +187,11 @@ def train_epochs(epochs,
 
         if verbose:
             # Show validation accuracy
-            evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose)
+            _ = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses,
-                                        vector_subclass=vector_subclass, verbose=verbose)
+                                        vector_subclass=vector_subclass, verbose=verbose, multiclass=multiclass)
             accuracies.extend(epoch_accuracies)
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(loss_fn.q.tolist())
@@ -220,7 +226,8 @@ def run_trials(num_trials,
                record=False,
                gradient_clip=None,
                sub_batches=1,
-               vector_subclass=False):
+               vector_subclass=False,
+               multiclass=False):
     """
     Runs a number of trials
     :param num_trials: The number of trials to run
@@ -282,7 +289,8 @@ def run_trials(num_trials,
                                      num_subclasses=num_subclasses,
                                      gradient_clip=gradient_clip,
                                      sub_batches=sub_batches,
-                                     vector_subclass=vector_subclass
+                                     vector_subclass=vector_subclass,
+                                     multiclass=multiclass
                                      )
 
         if record:
