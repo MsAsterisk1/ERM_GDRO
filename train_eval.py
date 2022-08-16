@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch import nn
 from loss import GDROLoss, CRISLoss
+from tqdm import tqdm
 
 
 def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, scheduler=None, gradient_clip=None):
@@ -160,7 +161,7 @@ def train_epochs(epochs,
         # Plus 1 epoch of gDRO (gDRO produces best results with early stopping, especially when the classifier is pre-trained
         epochs = 132
 
-    for epoch in range(epochs):
+    for epoch in tqdm(range(epochs)):
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
