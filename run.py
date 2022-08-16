@@ -129,7 +129,7 @@ upweight_class = ERMLoss
 upweight_args = {'loss_fn': torch.nn.CrossEntropyLoss()}
 cris_class = CRISLoss
 cris_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses}
-losses = {'erm': (erm_class, erm_args), 'gdro': (gdro_class, gdro_args), 'upweight': (upweight_class, upweight_args), 'cris': (cris_class, cris_args)}
+losses = {'erm': (erm_class, erm_args), 'gdro': (gdro_class, gdro_args), 'upweight': (upweight_class, upweight_args), 'cris': (cris_class, cris_args), 'rwcris': (cris_class, cris_args)}
 
 accuracies = {}
 
@@ -137,12 +137,11 @@ for loss_fn in args.loss:
     if verbose:
         print(f"Running trials: {loss_fn}")
 
-    reweight_train = loss_fn != 'erm'
     train_dataloader, val_dataloader, test_dataloader, = utils.get_dataloaders(
         (train_dataset, val_dataset, test_dataset),
         batch_size=batch_size,
-        reweight_train=reweight_train,
-        split=loss_fn == 'cris',
+        reweight_train=loss_fn not in ['erm', 'cris'],
+        split=loss_fn in ['cris', 'rwcris'],
         proportion=float(args.cris_prop)
     )
 
