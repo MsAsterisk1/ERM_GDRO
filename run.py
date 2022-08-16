@@ -148,6 +148,9 @@ for loss_fn in args.loss:
 
     run_trials_args['loss_class'], run_trials_args['loss_args'] = losses[loss_fn]
 
+    if loss_fn == 'cris':
+        run_trials_args['optimizer_args']['lr'] = 0.0001
+
     run_trials_args['train_dataloader'] = train_dataloader
     run_trials_args['val_dataloader'] = val_dataloader
     run_trials_args['test_dataloader'] = test_dataloader
@@ -157,7 +160,7 @@ for loss_fn in args.loss:
     accuracies_df = pd.DataFrame(
         accuracies,
         index=pd.MultiIndex.from_product(
-            [range(run_trials_args['num_trials']), range(run_trials_args['epochs'] + 1), subtypes],
+            [range(run_trials_args['num_trials']), range(131+250+1), subtypes],
             names=["trial", "epoch", "subtype"]
         )
     )
