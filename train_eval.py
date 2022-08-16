@@ -130,7 +130,8 @@ def train_epochs(epochs,
                  save_weights_name=None,
                  num_subclasses=1,
                  gradient_clip=None,
-                 sub_batches=1):
+                 sub_batches=1,
+                 multiclass=False):
     """
     Trains the model for a number of epochs and evaluates the model at each epoch
     :param epochs: The number of epochs to train
@@ -149,7 +150,7 @@ def train_epochs(epochs,
     if record:
         accuracies = list(
             evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass,
-                     verbose=verbose))
+                     verbose=verbose, multiclass=multiclass))
         q_data = None
         if isinstance(loss_fn, GDROLoss):
             q_data = loss_fn.q.tolist()
@@ -181,11 +182,11 @@ def train_epochs(epochs,
 
         if verbose:
             # Show validation accuracy
-            evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose)
+            _ = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses,
-                                        vector_subclass=vector_subclass, verbose=verbose)
+                                        vector_subclass=vector_subclass, verbose=verbose, multiclass=multiclass)
             accuracies.extend(epoch_accuracies)
             if isinstance(loss_fn, GDROLoss):
                 q_data.extend(loss_fn.q.tolist())
@@ -220,7 +221,8 @@ def run_trials(num_trials,
                record=False,
                gradient_clip=None,
                sub_batches=1,
-               vector_subclass=False):
+               vector_subclass=False,
+               multiclass=False):
     """
     Runs a number of trials
     :param num_trials: The number of trials to run
@@ -282,7 +284,8 @@ def run_trials(num_trials,
                                      num_subclasses=num_subclasses,
                                      gradient_clip=gradient_clip,
                                      sub_batches=sub_batches,
-                                     vector_subclass=vector_subclass
+                                     vector_subclass=vector_subclass,
+                                     multiclass=multiclass
                                      )
 
         if record:

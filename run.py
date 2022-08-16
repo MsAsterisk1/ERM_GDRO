@@ -107,6 +107,8 @@ run_trials_args['num_trials'] = trials
 run_trials_args['verbose'] = args.verbose
 run_trials_args['record'] = True
 
+run_trials_args['multiclass'] = args.multiclass
+
 results_root_dir = 'test_results/'
 test_name = args.test_name
 results_dir = results_root_dir + f'{test_name}/'
