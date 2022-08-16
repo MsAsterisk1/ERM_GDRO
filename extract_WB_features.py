@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-f', '--file_name', default='features')
 parser.add_argument('-d', '--device', default="0" if torch.cuda.is_available() else "cpu")
 parser.add_argument('-v', '--verbose', action='store_true')
-
+parser.add_argument('-r', '--reweight_train', action='store_true')
 parser.add_argument('-s', '--subclass_label', action='store_true')
 
 
@@ -31,7 +31,7 @@ num_subclasses = 4
 num_labels = 4 if args.subclass_label else 2
 
 train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device, subclass_label=args.subclass_label)
-train_dataloader, val_dataloader, test_dataloader = get_dataloaders((train_dataset, val_dataset, test_dataset), batch_size=batch_size)
+train_dataloader, val_dataloader, test_dataloader = get_dataloaders((train_dataset, val_dataset, test_dataset), batch_size=batch_size, reweight_train=args.reweight_train)
 
 
 epochs = 131
