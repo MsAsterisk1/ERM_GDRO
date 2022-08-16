@@ -1,14 +1,18 @@
 import pandas as pd
-from utils.process_data_utils import  get_dataloaders, get_waterbirds_datasets
-from loss import ERMLoss, GDROLoss
-from train_eval import  train_epochs
+import numpy as np
+
+import argparse
+from tqdm import tqdm
+
 import torch
 from torch.optim import SGD
 import torch.nn as nn
-from models import TransferModel50
-import argparse
 
-import numpy as np
+from utils.process_data_utils import  get_dataloaders, get_waterbirds_datasets
+from loss import ERMLoss, GDROLoss
+from train_eval import  train_epochs
+from models import TransferModel50
+
 
 from umap import UMAP
 from sklearn.metrics import silhouette_score
@@ -53,8 +57,9 @@ trials = 1
 if args.silhouette_score:
     trials = 5
     sc = []
+    sc_b = []
 
-for trial in range(trials):
+for trial in tqdm(range(trials)):
 
     model = TransferModel50(device=device, num_labels=num_labels)
 
@@ -110,18 +115,27 @@ for trial in range(trials):
         feats = df_feats.drop(['label'], axis=1).values
         reducer = UMAP(random_state=8, n_components=2)
         embeds = reducer.fit_transform(feats)
+
         groups =  df_feats['label'].values
+        groups_b = np.where(groups>1,1,0)
 
         silhouette_avg = silhouette_score(embeds, groups)
+        silhouette_avg_b = silhouette_score(embeds, groups_b)
+
         
-        print(f'Trial {trial+1}/{trials} Silhouette score average: {silhouette_avg}')
+        print(f'Trial {trial+1}/{trials} sc average: {silhouette_avg} sc binary average: {silhouette_avg_b}')
         sc.append(silhouette_avg)
+        sc_b.append(silhouette_avg_b)
 
 
 
 if args.silhouette_score:
     print(f'Silhouette Scores across trials {sc}')
     print(f'Average SC acoss trials {np.mean(sc)}')
+
+    print(f'Binary Silhouette Scores across trials {sc_b}')
+    print(f'Average Binary SC acoss trials {np.mean(sc_b)}')
+
 else:
     df_feats.to_csv(f'{args.file_name}.csv')
 
