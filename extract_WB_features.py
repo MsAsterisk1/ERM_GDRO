@@ -3,14 +3,14 @@ from utils.process_data_utils import  get_dataloaders, get_waterbirds_datasets
 from loss import ERMLoss, GDROLoss
 from train_eval import  train_epochs
 import torch
+from torch.optim import SGD
+import torch.nn as nn
 from models import TransferModel50
 import argparse
 
-import pandas as pd
 import numpy as np
 
 from umap import UMAP
-from matplotlib import pyplot as plt
 from sklearn.metrics import silhouette_score
 
 parser = argparse.ArgumentParser()
@@ -48,19 +48,23 @@ train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device
 train_dataloader, val_dataloader, test_dataloader = get_dataloaders((train_dataset, val_dataset, test_dataset), batch_size=batch_size, reweight_train=args.reweight_train)
 
 
-trials = 5 if args.silhouette_score else 1
+trials = 1
 
-for _ in range(trials):
+if args.silhouette_score:
+    trials = 5
+    sc = []
+
+for trial in range(trials):
 
     model = TransferModel50(device=device, num_labels=num_labels)
 
 
     if args.loss_function == 'ERM':
-        loss_fn = ERMLoss(model, torch.nn.CrossEntropyLoss())
+        loss_fn = ERMLoss(model, nn.CrossEntropyLoss())
     else:
-        loss_fn = GDROLoss(model, torch.nn.CrossEntropyLoss(), eta=eta, num_subclasses=num_subclasses)
+        loss_fn = GDROLoss(model, nn.CrossEntropyLoss(), eta=eta, num_subclasses=num_subclasses)
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001, weight_decay=0.0001, momentum=0.9)
+    optimizer = SGD(model.parameters(), lr=0.0001, weight_decay=0.0001, momentum=0.9)
 
     train_epochs(epochs, train_dataloader, val_dataloader, test_dataloader, model, loss_fn, optimizer, verbose=args.verbose, num_subclasses=num_subclasses)
 
@@ -103,8 +107,22 @@ for _ in range(trials):
     df_feats = pd.DataFrame(cols).rename({0:'label'}, axis=1)
 
     if args.silhouette_score:
+        feats = df_feats.drop(['label'], axis=1).values
+        reducer = UMAP(random_state=8, n_components=2)
+        embeds = reducer.fit_transform(feats)
+        groups =  df_feats['label'].values
+
+        silhouette_avg = silhouette_score(embeds, groups)
+        
+        print(f'Trial {trial+1}/{trials} Silhouette score average: {silhouette_avg}')
+        sc.append(silhouette_avg)
 
 
-df_feats.to_csv(f'{args.file_name}.csv')
+
+if args.silhouette_score:
+    print(f'Silhouette Scores across trials {sc}')
+    print(f'Average SC acoss trials {np.mean(sc)}')
+else:
+    df_feats.to_csv(f'{args.file_name}.csv')
 
 
