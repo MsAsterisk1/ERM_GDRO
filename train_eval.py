@@ -155,13 +155,18 @@ def train_epochs(epochs,
         if isinstance(loss_fn, GDROLoss):
             q_data = loss_fn.q.tolist()
 
+    if isinstance(loss_fn, CRISLoss):
+        # From CRIS, 131 epochs of ERM was found to produce best results
+        # Plus 1 epoch of gDRO (gDRO produces best results with early stopping, especially when the classifier is pre-trained
+        epochs = 132
+
     for epoch in range(epochs):
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
         if isinstance(loss_fn, CRISLoss):
             # From CRIS, 131 epochs of ERM was found to produce best results
-            if epoch == 3:
+            if epoch == 131:
                 # Sets CRIS to use gDRO and freezes featurizer
                 print("CRIS switching to gDRO")
                 loss_fn.toggle_mode()
