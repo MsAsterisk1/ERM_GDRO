@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch import nn
 from loss import GDROLoss, CRISLoss
+from tqdm import tqdm
 
 
 def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, scheduler=None, gradient_clip=None):
@@ -158,14 +159,21 @@ def train_epochs(epochs,
     if isinstance(loss_fn, CRISLoss):
         # From CRIS, 131 epochs of ERM was found to produce best results
         # Plus 1 epoch of gDRO (gDRO produces best results with early stopping, especially when the classifier is pre-trained
-        epochs = 132
+        # epochs = 193+250
+        epochs = 131+250
+    
+    # vals = []
+    # v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
+    # val_overall = 0.72950991 * v[0] + 0.03837331 * v[1] + 0.01167883 * v[2] + 0.22043796 * v[3]
+    # vals.append(min(v))
 
-    for epoch in range(epochs):
+    for epoch in tqdm(range(epochs)):
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
         if isinstance(loss_fn, CRISLoss):
             # From CRIS, 131 epochs of ERM was found to produce best results
+            #if epoch == 193:
             if epoch == 131:
                 # Sets CRIS to use gDRO and freezes featurizer
                 print("CRIS switching to gDRO")
@@ -185,9 +193,9 @@ def train_epochs(epochs,
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches,
               scheduler=scheduler, gradient_clip=gradient_clip)
 
-        if verbose:
-            # Show validation accuracy
-            _ = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)
+        # v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
+        # val_overall = 0.72950991 * v[0] + 0.03837331 * v[1] + 0.01167883 * v[2] + 0.22043796 * v[3]
+        # vals.append(min(v))
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses,
@@ -201,6 +209,10 @@ def train_epochs(epochs,
             _ = evaluate(val_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True,
                          verbose=True)
             torch.save(model.state_dict(), f'./epoch_{epoch + 1}_{save_weights_name}.wt')
+
+    # print("Best min validation + epoch")
+    # print(max(vals))
+    # print(vals.index(max(vals)))
 
     if record:
         return accuracies, q_data
