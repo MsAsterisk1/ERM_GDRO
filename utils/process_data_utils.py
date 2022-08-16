@@ -116,7 +116,7 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu', subclass_label=False):
 
         labels = labels.to(device).long()
         subclasses = subclasses.to(device).long()
-        datasets.append(SubclassedDataset(features, labels, subclasses))
+        datasets.append(SubclassedDataset(features, labels, subclasses, subclass_label=subclass_label))
 
     return datasets
 
@@ -138,12 +138,14 @@ def get_MNIST_datasets(device='cpu', path='data/mnist/', rng=np.random.default_r
     train_dataset = SubclassedDataset(
         torch.from_numpy(train_images).to(device=device, dtype=torch.float),
         torch.from_numpy(train_labels).to(device=device, dtype=torch.long),
-        torch.from_numpy(train_subclass_labels).to(device=device, dtype=torch.long)
+        torch.from_numpy(train_subclass_labels).to(device=device, dtype=torch.long),
+        subclass_label=subclass_label
     )
     test_dataset = SubclassedDataset(
         torch.from_numpy(test_images).to(device=device, dtype=torch.float),
         torch.from_numpy(test_labels).to(device=device, dtype=torch.long),
-        torch.from_numpy(test_subclass_labels).to(device=device, dtype=torch.long)
+        torch.from_numpy(test_subclass_labels).to(device=device, dtype=torch.long),
+        subclass_label=subclass_label
     )
 
     train_dataset, val_dataset = split_stratified(dataset=train_dataset, sizes=[50000, 10000], rng=rng)
@@ -185,13 +187,10 @@ def get_waterbirds_datasets(device='cpu', path='data/waterbirds_v1.0/', subclass
     val_idx = metadata_df['split'] == 1
     test_idx = metadata_df['split'] == 2
 
-    if subclass_label:
-        train_dataset = SubclassedDataset(features[train_idx], subclasses[train_idx], subclasses[train_idx])
-    else:
-        train_dataset = SubclassedDataset(features[train_idx], labels[train_idx], subclasses[train_idx])
+    train_dataset = SubclassedDataset(features[train_idx], labels[train_idx], subclasses[train_idx], subclass_label=subclass_label)
 
-    val_dataset = SubclassedDataset(features[val_idx], labels[val_idx], subclasses[val_idx])
-    test_dataset = SubclassedDataset(features[test_idx], labels[test_idx], subclasses[test_idx])
+    val_dataset = SubclassedDataset(features[val_idx], labels[val_idx], subclasses[val_idx], subclass_label=subclass_label)
+    test_dataset = SubclassedDataset(features[test_idx], labels[test_idx], subclasses[test_idx], subclass_label=subclass_label)
 
     return train_dataset, val_dataset, test_dataset
 
@@ -234,9 +233,9 @@ def get_celeba_datasets(device='cpu', path='data/celeba/', subclass_label=False)
             val_idx.append(split == 1)
             test_idx.append(split == 2)
 
-    train_dataset = SubclassedDataset(features[train_idx], labels[train_idx], subclasses[train_idx])
-    val_dataset = SubclassedDataset(features[val_idx], labels[val_idx], subclasses[val_idx])
-    test_dataset = SubclassedDataset(features[test_idx], labels[test_idx], subclasses[test_idx])
+    train_dataset = SubclassedDataset(features[train_idx], labels[train_idx], subclasses[train_idx], subclass_label=subclass_label)
+    val_dataset = SubclassedDataset(features[val_idx], labels[val_idx], subclasses[val_idx], subclass_label=subclass_label)
+    test_dataset = SubclassedDataset(features[test_idx], labels[test_idx], subclasses[test_idx], subclass_label=subclass_label)
 
     return train_dataset, val_dataset, test_dataset
 

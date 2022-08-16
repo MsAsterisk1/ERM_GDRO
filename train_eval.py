@@ -1,6 +1,7 @@
 import numpy as np
 
 import torch
+from torch import nn
 from loss import GDROLoss, CRISLoss
 
 
@@ -158,9 +159,22 @@ def train_epochs(epochs,
             print(f'Epoch {epoch + 1} / {epochs}')
 
         if isinstance(loss_fn, CRISLoss):
-            # From CRIS
-            if epoch == 132:
+            # From CRIS, 131 epochs of ERM was found to produce best results
+            if epoch == 3:
+                # Sets CRIS to use gDRO and freezes featurizer
+                print("CRIS switching to gDRO")
                 loss_fn.toggle_mode()
+                # Once CRIS switches to gDRO we want it to train for the binary classification task
+                # Train dataloader is partitioned and we need to change the dataset for gdro, so dataloader1
+                # Dataloader1 is a regular loader so it has a dataset, but that dataset is a subdataset so it in turn
+                # has a dataset
+                # That dataset finally has the subclass_labels attribute, which needs to be set to False
+                train_dataloader.dataloader1.dataset.dataset.subclass_labels = False
+
+                # Also the model's fully-connected classifier needs to be reinitialized with 2 outputs
+                model.fc = nn.Sequential(
+                    nn.Linear(in_features=512, out_features=2, bias=True, device=model.device),
+                )
 
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches,
               scheduler=scheduler, gradient_clip=gradient_clip)

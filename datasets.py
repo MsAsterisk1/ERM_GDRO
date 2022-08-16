@@ -10,7 +10,7 @@ class SubclassedDataset(Dataset):
     Similar to a normal dataset, but getitem returns the subclass label as well as the feature tensor and superclass label
     """
 
-    def __init__(self, features, labels, subclasses):
+    def __init__(self, features, labels, subclasses, subclass_label=False):
         '''
         INPUTS:
         args: of the form X, y, c
@@ -21,6 +21,7 @@ class SubclassedDataset(Dataset):
         self.features = features
         self.labels = labels
         self.subclasses = subclasses
+        self.subclass_label = subclass_label
 
     def __len__(self):
         return len(self.labels)
@@ -29,7 +30,7 @@ class SubclassedDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        return self.features[idx], self.labels[idx], self.subclasses[idx]
+        return self.features[idx], self.subclasses[idx] if self.subclass_label else self.labels[idx], self.subclasses[idx]
 
 
 class SubDataset(Dataset):
