@@ -244,7 +244,7 @@ def get_dataloaders(datasets, batch_size, reweight_train=False, split=False, pro
     train_dataset, val_dataset, test_dataset = datasets
 
     if split:
-        train_dataloader = get_partitioned_dataloader(train_dataset, batch_size[0], proportion=proportion, seed=seed)
+        train_dataloader = get_partitioned_dataloader(train_dataset, batch_size[0], proportion=proportion, balanced=reweight_train, seed=seed)
     else:
         train_dataloader = InfiniteDataLoader(
             train_dataset,
@@ -286,13 +286,14 @@ def split_dataset(dataset, proportion=0.5, seed=None):
     return SubDataset(indices_1, dataset), SubDataset(indices_2, dataset)
 
 
-def get_partitioned_dataloader(dataset, batch_size, proportion=0.5, seed=None):
+def get_partitioned_dataloader(dataset, batch_size, proportion=0.5, balanced=False, seed=None):
     dataset0, dataset1 = split_dataset(dataset, proportion=proportion, seed=seed)
 
     dataloader = PartitionedDataLoader(dataset0, int(batch_size * proportion),
                                        dataset1, int(batch_size * (1 - proportion)),
                                        replacement0=False, drop_last0=False,
                                        replacement1=True, drop_last1=True,
+                                       weights0=get_sampler_weights(dataset0.subclasses) if balanced else None,
                                        weights1=get_sampler_weights(dataset1.subclasses))
 
     return dataloader
