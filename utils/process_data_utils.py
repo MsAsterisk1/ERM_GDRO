@@ -82,7 +82,7 @@ def get_CivilComments_df(csv_file_path=url_CivilComments):
     return CC_df
 
 
-def get_CivilComments_Datasets(CC_df=None, device='cpu'):
+def get_CivilComments_Datasets(CC_df=None, device='cpu', subclass_label=False):
     if CC_df is None:
         CC_df = get_CivilComments_df()
         # CC_df = CC_df[:100]
@@ -121,7 +121,7 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu'):
     return datasets
 
 
-def get_MNIST_datasets(device='cpu', path='data/mnist/', rng=np.random.default_rng()):
+def get_MNIST_datasets(device='cpu', path='data/mnist/', rng=np.random.default_rng(), subclass_label=False):
     train_images = np.fromfile(path + 'train-images.idx3-ubyte', dtype='>u1')[16:]
     train_labels = np.fromfile(path + 'train-labels.idx1-ubyte', dtype='>u1')[8:]
     test_images = np.fromfile(path + 't10k-images.idx3-ubyte', dtype='>u1')[16:]
@@ -169,7 +169,7 @@ def get_images(root, paths, transform=transforms.ToTensor(), device='cpu'):
     return torch.stack(img_tensors)
 
 
-def get_waterbirds_datasets(device='cpu', path='data/waterbirds_v1.0/'):
+def get_waterbirds_datasets(device='cpu', path='data/waterbirds_v1.0/', subclass_label=False):
     metadata_df = pd.read_csv(path + 'metadata.csv')
 
     transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
@@ -185,14 +185,18 @@ def get_waterbirds_datasets(device='cpu', path='data/waterbirds_v1.0/'):
     val_idx = metadata_df['split'] == 1
     test_idx = metadata_df['split'] == 2
 
-    train_dataset = SubclassedDataset(features[train_idx], labels[train_idx], subclasses[train_idx])
+    if subclass_label:
+        train_dataset = SubclassedDataset(features[train_idx], subclasses[train_idx], subclasses[train_idx])
+    else:
+        train_dataset = SubclassedDataset(features[train_idx], labels[train_idx], subclasses[train_idx])
+
     val_dataset = SubclassedDataset(features[val_idx], labels[val_idx], subclasses[val_idx])
     test_dataset = SubclassedDataset(features[test_idx], labels[test_idx], subclasses[test_idx])
 
     return train_dataset, val_dataset, test_dataset
 
 
-def get_celeba_datasets(device='cpu', path='data/celeba/'):
+def get_celeba_datasets(device='cpu', path='data/celeba/', subclass_label=False):
 
     with open(path + 'list_attr_celeba.txt') as f:
         lines = f.readlines()
