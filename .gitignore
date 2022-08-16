@@ -134,3 +134,6 @@ dmypy.json
 
 # model weights
 *.wt
+
+# ignore csv in root
+/*.csv
