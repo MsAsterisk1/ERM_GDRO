@@ -82,14 +82,14 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=
                         # Assumes that the first half of the subtypes is class 0 and the second half is class 1
                         # Also assumes that unlike during training, y refers to the superclass labels
                         subgroup_correct[subclass] += (
-                                    (pred[subclass_idx].argmax(1) >= num_subclasses // 2) == y[subclass_idx]).type(
+                                    (pred[subclass_idx].argmax(1) >= num_subclasses // 2) == (y[subclass_idx] >= num_subclasses // 2)).type(
                             torch.float).sum().item()
                     else:
                         subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(
                             torch.float).sum().item()
 
             if multiclass:
-                accuracy += ((pred.argmax(1) > 1) == y).type(torch.float).sum().item()
+                accuracy += ((pred.argmax(1) >= num_subclasses // 2) == (y >= num_subclasses // 2)).type(torch.float).sum().item()
             else:
                 accuracy += (pred.argmax(1) == y).type(torch.float).sum().item()
             if get_loss:
