@@ -95,11 +95,25 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu', subclass_label=False):
         sub_df = CC_df[CC_df['split'] == split]
 
         # features, labels, subclasses
-        tokens = tokenizer(list(sub_df['comment_text'].values), padding='max_length', max_length=300,
-                           truncation=True, return_tensors="pt")
+        # tokens = tokenizer(list(sub_df['comment_text'].values), padding='max_length', max_length=300,
+        #                    truncation=True, return_tensors="pt")
 
+        #might be slower, but displays progress
+        ids = []
+        masks = []
+        for txt in tqdm(sub_df['comment_text'].values):
+            token = tokenizer(txt, padding='max_length', max_length=300,
+                               truncation=True, return_tensors="pt")
+            ids.append(token['input_ids'])
+            masks.append(token['attention_mask'])
+
+        ids = torch.cat(ids)
+        masks = torch.cat(masks)
+        
         labels = torch.from_numpy(sub_df['toxicity'].values)
-        features = torch.stack((tokens['input_ids'], tokens['attention_mask']), dim=1)
+        # features = torch.stack((tokens['input_ids'], tokens['attention_mask']), dim=1)
+        features = torch.stack((ids, masks), dim=1)
+
 
         # for train, we only group by labels
         if split == 0:

@@ -6,7 +6,7 @@ from loss import GDROLoss, CRISLoss, ERMLoss
 from tqdm import tqdm
 
 
-def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, scheduler=None, gradient_clip=None):
+def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, scheduler=None, gradient_clip=None, use_tqdm=False):
     """
     Train the model for one epoch
     :param dataloader: The dataloader for the training data
@@ -22,7 +22,10 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, s
 
     avg_loss = 0
 
-    for i in range(steps_per_epoch):
+
+    step_iter = tqdm(range(steps_per_epoch)) if use_tqdm else range(steps_per_epoch)
+
+    for i in step_iter:
         loss = loss_fn(next(dataloader))
         avg_loss += loss.item()
 
@@ -134,7 +137,8 @@ def train_epochs(epochs,
                  num_subclasses=1,
                  gradient_clip=None,
                  sub_batches=1,
-                 multiclass=False):
+                 multiclass=False,
+                 use_tqdm=False):
     """
     Trains the model for a number of epochs and evaluates the model at each epoch
     :param epochs: The number of epochs to train
@@ -215,7 +219,7 @@ def train_epochs(epochs,
             validation = 1
 
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches,
-              scheduler=scheduler, gradient_clip=gradient_clip)
+              scheduler=scheduler, gradient_clip=gradient_clip, use_tqdm=use_tqdm)
 
         if validation is not None:
             v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses,
