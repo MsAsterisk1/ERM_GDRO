@@ -133,6 +133,11 @@ losses = {'erm': (erm_class, erm_args), 'gdro': (gdro_class, gdro_args), 'upweig
 
 accuracies = {}
 
+# Number of epochs to use in the index of the results DataFrame (not necessarily the number actually trained)
+epoch_index_length = run_trials_args['epochs']
+if 'cris' in args.loss:
+    epoch_index_length *= 2
+
 for loss_fn in args.loss:
     if verbose:
         print(f"Running trials: {loss_fn}")
@@ -153,13 +158,14 @@ for loss_fn in args.loss:
 
     accuracies[loss_fn] = run_trials(**run_trials_args)
     if (loss_fn != 'cris') and ('cris' in args.loss):
-        # pad to double the length of non-cris loss functions as cris takes twice as long
-        accuracies[loss_fn] = np.pad(accuracies[loss_fn], (0, len(accuracies[loss_fn])), 'edge')
+        # pad the length of non-cris loss functions as cris takes twice as long
+        required_length = (epoch_index_length + 1) * len(subtypes)
+        accuracies[loss_fn] = np.pad(accuracies[loss_fn], (0, (epoch_index_length + 1) * len(subtypes) - len(accuracies[loss_fn])), 'edge')
 
     accuracies_df = pd.DataFrame(
         accuracies,
         index=pd.MultiIndex.from_product(
-            [range(run_trials_args['num_trials']), range(run_trials_args['epochs'] + 1), subtypes],
+            [range(run_trials_args['num_trials']), range(epoch_index_length + 1), subtypes],
             names=["trial", "epoch", "subtype"]
         )
     )
