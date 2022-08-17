@@ -160,9 +160,6 @@ def train_epochs(epochs,
         accuracies = list(
             evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass,
                      verbose=verbose, multiclass=multiclass))
-        q_data = None
-        if isinstance(loss_fn, GDROLoss):
-            q_data = loss_fn.q.tolist()
 
     if isinstance(loss_fn, CRISLoss):
         epochs *= 2

@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from loss import ERMLoss, GDROLoss, ERMGDROLoss, CRISLoss
 import models
@@ -151,6 +152,9 @@ for loss_fn in args.loss:
     run_trials_args['test_dataloader'] = test_dataloader
 
     accuracies[loss_fn] = run_trials(**run_trials_args)
+    if (loss_fn != 'cris') and ('cris' in args.loss):
+        # pad to double the length of non-cris loss functions as cris takes twice as long
+        accuracies[loss_fn] = np.pad(accuracies[loss_fn], (0, len(accuracies[loss_fn])), 'edge')
 
     accuracies_df = pd.DataFrame(
         accuracies,
