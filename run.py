@@ -12,7 +12,7 @@ import transformers
 
 parser = argparse.ArgumentParser()
 parser.add_argument('dataset')
-parser.add_argument('loss', nargs='+')
+parser.add_argument('loss')
 parser.add_argument('--trials', default=5)
 parser.add_argument('--test_name', default='test')
 parser.add_argument('--device', default="0" if torch.cuda.is_available() else "cpu")
@@ -135,39 +135,34 @@ accuracies = {}
 
 # Number of epochs to use in the index of the results DataFrame (not necessarily the number actually trained)
 epoch_index_length = run_trials_args['epochs']
-if 'cris' in args.loss or 'rwcris' in args.loss:
+if args.loss in ['cris', 'rwcris']:
     epoch_index_length *= 2
 
-for loss_fn in args.loss:
-    if verbose:
-        print(f"Running trials: {loss_fn}")
+if verbose:
+    print(f"Running trials: {args.loss}")
 
-    train_dataloader, val_dataloader, test_dataloader, = utils.get_dataloaders(
-        (train_dataset, val_dataset, test_dataset),
-        batch_size=batch_size,
-        reweight_train=loss_fn not in ['erm', 'cris'],
-        split=loss_fn in ['cris', 'rwcris'],
-        proportion=float(args.cris_prop)
+train_dataloader, val_dataloader, test_dataloader, = utils.get_dataloaders(
+    (train_dataset, val_dataset, test_dataset),
+    batch_size=batch_size,
+    reweight_train=args.loss not in ['erm', 'cris'],
+    split=args.loss in ['cris', 'rwcris'],
+    proportion=float(args.cris_prop)
+)
+
+run_trials_args['loss_class'], run_trials_args['loss_args'] = losses[args.loss]
+
+run_trials_args['train_dataloader'] = train_dataloader
+run_trials_args['val_dataloader'] = val_dataloader
+run_trials_args['test_dataloader'] = test_dataloader
+
+accuracies[args.loss] = run_trials(**run_trials_args)
+
+accuracies_df = pd.DataFrame(
+    accuracies,
+    index=pd.MultiIndex.from_product(
+        [range(run_trials_args['num_trials']), range(epoch_index_length + 1), subtypes],
+        names=["trial", "epoch", "subtype"]
     )
+)
 
-    run_trials_args['loss_class'], run_trials_args['loss_args'] = losses[loss_fn]
-
-    run_trials_args['train_dataloader'] = train_dataloader
-    run_trials_args['val_dataloader'] = val_dataloader
-    run_trials_args['test_dataloader'] = test_dataloader
-
-    accuracies[loss_fn] = run_trials(**run_trials_args)
-    if (loss_fn not in ['cris', 'rwcris']) and ('cris' in args.loss or 'rwcris' in args.loss):
-        # pad the length of non-cris loss functions as cris takes twice as long
-        required_length = (epoch_index_length + 1) * len(subtypes)
-        accuracies[loss_fn] = np.pad(accuracies[loss_fn], (0, (epoch_index_length + 1) * len(subtypes) - len(accuracies[loss_fn])), 'edge')
-
-    accuracies_df = pd.DataFrame(
-        accuracies,
-        index=pd.MultiIndex.from_product(
-            [range(run_trials_args['num_trials']), range(epoch_index_length + 1), subtypes],
-            names=["trial", "epoch", "subtype"]
-        )
-    )
-
-    accuracies_df.to_csv(results_dir + f'{args.test_name}.csv')
+accuracies_df.to_csv(results_dir + f'{args.test_name}.csv')
