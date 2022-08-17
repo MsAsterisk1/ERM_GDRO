@@ -56,7 +56,7 @@ if args.dataset == 'waterbirds':
     use_tqdm=False
     train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device, subclass_label=args.subclass_label)
 elif args.dataset == 'civilcomments':
-     batch_size = (16, 128)
+     batch_size = (16, 32)
 
     # for gdro traon on labels x identity (identity or others)
      num_subclasses = 4
@@ -131,6 +131,10 @@ for trial in tqdm(range(trials)):
         img_features = activation['featurizer'].squeeze()
         features.extend(torch.unbind(img_features))
         pred_labels.extend(preds.int().tolist())
+
+        if args.dataset == 'civilcomments':
+            c = torch.sum(c, dim=1) == 0
+
         labels.extend(c.int().tolist())
 
 
@@ -141,6 +145,10 @@ for trial in tqdm(range(trials)):
         img_features = activation['featurizer'].squeeze()
         features.extend(torch.unbind(img_features))
         pred_labels.extend(preds.int().tolist())
+
+        if args.dataset == 'civilcomments':
+            c = torch.sum(c, dim=1) == 0
+            c = y + 2*c
         labels.extend(c.int().tolist())
 
     cols = []
