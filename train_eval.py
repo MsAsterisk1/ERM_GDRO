@@ -235,7 +235,8 @@ def train_epochs(epochs,
                                         vector_subclass=vector_subclass, verbose=verbose, multiclass=multiclass)
             accuracies.extend(epoch_accuracies)
 
-    print(f"Best epoch using cross-validation: {best_epoch}")
+    if validation is not None:
+        print(f"Best epoch using cross-validation: {best_epoch}")
 
     if record:
         return accuracies
