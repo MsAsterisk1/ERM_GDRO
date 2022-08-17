@@ -123,12 +123,13 @@ def train_epochs(epochs,
                  test_dataloader,
                  model,
                  loss_fn,
-                 optimizer,
-                 scheduler=None,
+                 optimizer_class,
+                 optimizer_args,
+                 scheduler_class=None,
+                 scheduler_args=None,
                  vector_subclass=False,
                  verbose=False,
                  record=False,
-                 save_weights_name=None,
                  num_subclasses=1,
                  gradient_clip=None,
                  sub_batches=1,
@@ -148,6 +149,13 @@ def train_epochs(epochs,
     :param num_subclasses: The number of subclasses to evaluate on
     :return: A list containing the overall accuracy and subclass sensitivities for each epoch, arranged 1-dimensionally ex. [accuracy_1, subclass1_1, subclass2_1, accuracy_2, subclass1_2, subclass2_2...]
     """
+    optimizer = optimizer_class(**optimizer_args)
+    if scheduler_class is not None:
+        scheduler_args['optimizer'] = optimizer
+        scheduler = scheduler_class(**scheduler_args)
+    else:
+        scheduler = None
+
     if record:
         accuracies = list(
             evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass,
@@ -155,61 +163,73 @@ def train_epochs(epochs,
         q_data = None
         if isinstance(loss_fn, GDROLoss):
             q_data = loss_fn.q.tolist()
-    
-    vals = []
-    v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
-    val_overall = 0.72950991 * v[0] + 0.03837331 * v[1] + 0.01167883 * v[2] + 0.22043796 * v[3]
-    vals.append(min(v))
+
+    if isinstance(loss_fn, CRISLoss):
+        epochs *= 2
+
+        # True: use overall accuracy to evaluate model
+        # False: use worst sensitivity to evaluate model
+        val_mode = True
+        v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
+
+        # First validation measurement is best so far
+        best_model = model.state_dict()
+        best_val = (sum(v) / len(v)) if val_mode else min(v)
 
     for epoch in tqdm(range(epochs)):
         if verbose:
             print(f'Epoch {epoch + 1} / {epochs}')
 
-        if isinstance(loss_fn, CRISLoss):
-            # From CRIS, 131 epochs of ERM was found to produce best results
-            #if epoch == 193:
-            if epoch == 131:
-                # Sets CRIS to use gDRO and freezes featurizer
-                print("CRIS switching to gDRO")
-                loss_fn.toggle_mode()
-                # Once CRIS switches to gDRO we want it to train for the binary classification task
-                # Train dataloader is partitioned and we need to change the dataset for gdro, so dataloader1
-                # Dataloader1 is a regular loader so it has a dataset, but that dataset is a subdataset so it in turn
-                # has a dataset
-                # That dataset finally has the subclass_labels attribute, which needs to be set to False
-                train_dataloader.dataloader1.dataset.dataset.subclass_labels = False
+        if isinstance(loss_fn, CRISLoss) and (epoch == epochs // 2):
+            print("CRIS switching to gDRO")
+            # Set CRIS to use gDRO
+            loss_fn.erm_mode = False
 
-                # Also the model's fully-connected classifier needs to be reinitialized with 2 outputs
-                model.fc = nn.Sequential(
-                    nn.Linear(in_features=512, out_features=2, bias=True, device=model.device),
-                )
+            # Load best model weights, replace last layer with 2 outputs
+            model.load_state_dict(best_model)
+            model.fc = nn.Sequential(
+                nn.Linear(in_features=512, out_features=2, bias=True, device=model.device),
+            )
+
+            # Reinitialize optimizer and optional scheduler
+            optimizer_args['params'] = model.parameters()
+            optimizer = optimizer_class(**optimizer_args)
+            if scheduler_class is not None:
+                scheduler_args['optimizer'] = optimizer
+                scheduler = scheduler_class(**scheduler_args)
+            else:
+                scheduler = None
+
+            # Freeze featurizer
+            model.set_grad('featurizer', False)
+
+            # Once CRIS switches to gDRO we want it to train for the binary classification task
+            # Train dataloader is partitioned and we need to change the dataset for gdro, so dataloader1
+            # Dataloader1 is a regular loader so it has a dataset, but that dataset is a subdataset so it in turn
+            # has a dataset
+            # That dataset finally has the subclass_labels attribute, which needs to be set to False
+            train_dataloader.dataloader1.dataset.dataset.subclass_labels = False
+
+            # Reset running best validation accuracy and switch to using worst-group sensitivity
+            best_val = 0
+            val_mode = False
 
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches,
               scheduler=scheduler, gradient_clip=gradient_clip)
 
-        v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
-        val_overall = 0.72950991 * v[0] + 0.03837331 * v[1] + 0.01167883 * v[2] + 0.22043796 * v[3]
-        vals.append(min(v))
+        if isinstance(loss_fn, CRISLoss):
+            v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, multiclass=multiclass)[1:]
+            if best_val < ((sum(v) / len(v)) if val_mode else min(v)):
+                best_model = model.state_dict()
+                best_val = (sum(v) / len(v)) if val_mode else min(v)
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses,
                                         vector_subclass=vector_subclass, verbose=verbose, multiclass=multiclass)
             accuracies.extend(epoch_accuracies)
-            if isinstance(loss_fn, GDROLoss):
-                q_data.extend(loss_fn.q.tolist())
-
-        if save_weights_name is not None:
-            print(f'For Cross Val:')
-            _ = evaluate(val_dataloader, model, num_subclasses, vector_subclass=vector_subclass, get_loss=True,
-                         verbose=True)
-            torch.save(model.state_dict(), f'./epoch_{epoch + 1}_{save_weights_name}.wt')
-
-    print("Best validation + epoch")
-    print(max(vals))
-    print(vals.index(max(vals)))
 
     if record:
-        return accuracies, q_data
+        return accuracies
     else:
         return None
 
@@ -259,10 +279,6 @@ def run_trials(num_trials,
         scheduler_args = {}
     if record:
         accuracies = []
-        roc_data = [None, None]
-        q_data = None
-        if loss_class is GDROLoss:
-            q_data = []
 
     for n in range(num_trials):
         if verbose:
@@ -272,15 +288,11 @@ def run_trials(num_trials,
         loss_args['model'] = model
         loss_fn = loss_class(**loss_args)
         optimizer_args['params'] = model.parameters()
-        optimizer = optimizer_class(**optimizer_args)
-        if scheduler_class is not None:
-            scheduler_args['optimizer'] = optimizer
-            scheduler = scheduler_class(**scheduler_args)
-        else:
-            scheduler = None
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+
 
         trial_results = train_epochs(epochs=epochs,
                                      train_dataloader=train_dataloader,
@@ -288,8 +300,10 @@ def run_trials(num_trials,
                                      test_dataloader=test_dataloader,
                                      model=model,
                                      loss_fn=loss_fn,
-                                     optimizer=optimizer,
-                                     scheduler=scheduler,
+                                     optimizer_class=optimizer_class,
+                                     optimizer_args=optimizer_args,
+                                     scheduler_class=scheduler_class,
+                                     scheduler_args=scheduler_args,
                                      verbose=verbose,
                                      record=record,
                                      num_subclasses=num_subclasses,
@@ -300,13 +314,10 @@ def run_trials(num_trials,
                                      )
 
         if record:
-            trial_accuracies, trial_q_data = trial_results
+            trial_accuracies = trial_results
             accuracies.extend(trial_accuracies)
 
-            if isinstance(loss_fn, GDROLoss):
-                q_data.extend(trial_q_data)
-
     if record:
-        return accuracies, q_data, roc_data
+        return accuracies
     else:
         return None

@@ -109,9 +109,8 @@ run_trials_args['record'] = True
 
 run_trials_args['multiclass'] = args.multiclass
 
-results_root_dir = 'test_results/'
+results_dir = 'test_results/'
 test_name = args.test_name
-results_dir = results_root_dir + f'{test_name}/'
 if not os.path.isdir(results_dir):
     os.mkdir(results_dir)
 
@@ -145,15 +144,13 @@ for loss_fn in args.loss:
         proportion=float(args.cris_prop)
     )
 
-    run_trials_args['epochs'] = 131 + 250
-
     run_trials_args['loss_class'], run_trials_args['loss_args'] = losses[loss_fn]
 
     run_trials_args['train_dataloader'] = train_dataloader
     run_trials_args['val_dataloader'] = val_dataloader
     run_trials_args['test_dataloader'] = test_dataloader
 
-    accuracies[loss_fn] = run_trials(**run_trials_args)[0]
+    accuracies[loss_fn] = run_trials(**run_trials_args)
 
     accuracies_df = pd.DataFrame(
         accuracies,
@@ -163,4 +160,4 @@ for loss_fn in args.loss:
         )
     )
 
-    accuracies_df.to_csv(results_dir + f'accuracies.csv')
+    accuracies_df.to_csv(results_dir + f'{args.test_name}.csv')
