@@ -38,7 +38,7 @@ else:
 
 
 
-batch_size = (128, 128)
+batch_size = (128, 256)
 eta = 0.01
 num_subclasses = 4
 num_labels = 4 if args.subclass_label else 2
@@ -85,14 +85,15 @@ for trial in tqdm(range(trials)):
 
     features = []
     labels = []
+    pred_labels = []
 
     for _ in range(test_dataloader.batches_per_epoch()):
         X,y,c = next(test_dataloader)
 
-        model(X)
+        preds = model(X)
         img_features = activation['avgpool'].squeeze()
         features.extend(torch.unbind(img_features))
-
+        pred_labels.extend(preds.int().tolist())
         labels.extend(c.int().tolist())
 
 
@@ -102,17 +103,17 @@ for trial in tqdm(range(trials)):
         model(X)
         img_features = activation['avgpool'].squeeze()
         features.extend(torch.unbind(img_features))
-
+        pred_labels.extend(preds.int().tolist())
         labels.extend(c.int().tolist())
 
     cols = []
     for idx,label in enumerate(labels):
-        cols.append([label] + features[idx].cpu().numpy().tolist())
+        cols.append([label] +  [pred_labels[idx]] + features[idx].cpu().numpy().tolist())
 
-    df_feats = pd.DataFrame(cols).rename({0:'label'}, axis=1)
+    df_feats = pd.DataFrame(cols).rename({0:'label', 1:'pred_labels'}, axis=1)
 
     if args.silhouette_score:
-        feats = df_feats.drop(['label'], axis=1).values
+        feats = df_feats.drop(['label', 'pred_labels'], axis=1).values
         reducer = UMAP(random_state=8, n_components=2)
         embeds = reducer.fit_transform(feats)
 
