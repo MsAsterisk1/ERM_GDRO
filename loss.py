@@ -127,10 +127,6 @@ class CRISLoss:
     def reset_gdro(self):
         self.gdro = GDROLoss(self.gdro.model, self.gdro.loss_fn, self.gdro.eta, self.gdro.num_subclasses)
 
-    def toggle_mode(self):
-        self.erm_mode = not self.erm_mode
-        self.model.set_grad('featurizer', self.erm_mode)
-
     def __call__(self, minibatch):
         X, y, c = minibatch
 
