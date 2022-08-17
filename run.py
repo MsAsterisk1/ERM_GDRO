@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from loss import ERMLoss, GDROLoss, CRISLoss
 import models
@@ -19,6 +18,7 @@ parser.add_argument('--device', default="0" if torch.cuda.is_available() else "c
 parser.add_argument('--verbose', action='store_true')
 parser.add_argument('--cris_prop', default=0.7)
 parser.add_argument('--multiclass', action='store_true')
+parser.add_argument('--val', default=None)
 
 
 args = parser.parse_args()
@@ -107,6 +107,7 @@ run_trials_args['num_trials'] = trials
 
 run_trials_args['verbose'] = args.verbose
 run_trials_args['record'] = True
+run_trials_args['validation'] = int(args.val)
 
 run_trials_args['multiclass'] = args.multiclass
 

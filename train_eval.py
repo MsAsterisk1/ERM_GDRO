@@ -2,7 +2,7 @@ import numpy as np
 
 import torch
 from torch import nn
-from loss import GDROLoss, CRISLoss
+from loss import GDROLoss, CRISLoss, ERMLoss
 from tqdm import tqdm
 
 
@@ -130,6 +130,7 @@ def train_epochs(epochs,
                  vector_subclass=False,
                  verbose=False,
                  record=False,
+                 validation=None,
                  num_subclasses=1,
                  gradient_clip=None,
                  sub_batches=1,
@@ -163,16 +164,17 @@ def train_epochs(epochs,
 
     if isinstance(loss_fn, CRISLoss):
         epochs *= 2
+        validation = 0
 
-    # True: use overall accuracy to evaluate model
-    # False: use worst sensitivity to evaluate model
-    val_mode = True
-    v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
+    if validation is not None:
+        v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
 
-    # First validation measurement is best so far
-    best_model = model.state_dict()
-    best_val = (sum(v) / len(v)) if val_mode else min(v)
-    best_epoch = 0
+        # First validation measurement is best so far
+        best_model = model.state_dict()
+        # 0: use overall accuracy to evaluate model
+        # not 0: use worst sensitivity to evaluate model
+        best_val = min(v) if validation else (sum(v) / len(v))
+        best_epoch = 0
 
     for epoch in tqdm(range(epochs)):
         if verbose:
@@ -210,16 +212,19 @@ def train_epochs(epochs,
 
             # Reset running best validation accuracy and switch to using worst-group sensitivity
             best_val = 0
-            val_mode = False
+            validation = 1
 
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches,
               scheduler=scheduler, gradient_clip=gradient_clip)
 
-        v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, multiclass=multiclass)[1:]
-        if best_val < ((sum(v) / len(v)) if val_mode else min(v)):
-            best_model = model.state_dict()
-            best_val = (sum(v) / len(v)) if val_mode else min(v)
-            best_epoch = epoch + 1
+        if validation is not None:
+            v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses,
+                         verbose=verbose, multiclass=multiclass)[1:]
+
+            if best_val < (min(v) if validation else (sum(v) / len(v))):
+                best_model = model.state_dict()
+                best_val = min(v) if validation else (sum(v) / len(v))
+                best_epoch = epoch + 1
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses,
@@ -250,6 +255,7 @@ def run_trials(num_trials,
                scheduler_args=None,
                verbose=False,
                record=False,
+               validation=None,
                gradient_clip=None,
                sub_batches=1,
                vector_subclass=False,
@@ -306,6 +312,7 @@ def run_trials(num_trials,
                                      scheduler_args=scheduler_args,
                                      verbose=verbose,
                                      record=record,
+                                     validation=validation,
                                      num_subclasses=num_subclasses,
                                      gradient_clip=gradient_clip,
                                      sub_batches=sub_batches,
