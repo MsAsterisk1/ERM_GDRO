@@ -53,7 +53,7 @@ if args.dataset == 'waterbirds':
 
     opt_class = SGD
     opt_args = {'lr':0.0001, 'weight_decay':0.0001, 'momentum':0.9}
-
+    use_tqdm=False
     train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device, subclass_label=args.subclass_label)
 elif args.dataset == 'civilcomments':
      batch_size = (16, 128)
@@ -71,7 +71,8 @@ elif args.dataset == 'civilcomments':
      model_class = BertClassifier
      opt_class = AdamW
      opt_args = {'lr': 0.00001, 'weight_decay': 0.01}
-
+    
+     use_tqdm = True
      train_dataset, val_dataset, test_dataset = get_CivilComments_Datasets(device=device, subclass_label=args.subclass_label)
 
 
@@ -97,7 +98,7 @@ for trial in tqdm(range(trials)):
 
     optimizer = opt_class(model.parameters(), **opt_args)
 
-    train_epochs(epochs, train_dataloader, val_dataloader, test_dataloader, model, loss_fn, optimizer, verbose=args.verbose, num_subclasses=num_subclasses)
+    train_epochs(epochs, train_dataloader, val_dataloader, test_dataloader, model, loss_fn, optimizer, verbose=args.verbose, num_subclasses=num_subclasses, use_tqdm=use_tqdm)
 
     activation = {}
     def get_activation(name):
