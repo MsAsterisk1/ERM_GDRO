@@ -85,7 +85,7 @@ def get_CivilComments_df(csv_file_path=url_CivilComments):
 
 def get_CivilComments_Datasets(CC_df=None, device='cpu', subclass_label=False):
     if CC_df is None:
-        CC_df = get_CivilComments_df()
+        CC_df = get_CivilComments_df()[:1000]
         # CC_df = CC_df[:100]
 
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', use_fast=True)
@@ -107,7 +107,9 @@ def get_CivilComments_Datasets(CC_df=None, device='cpu', subclass_label=False):
             ids.append(token['input_ids'])
             masks.append(token['attention_mask'])
 
-
+        ids = torch.cat(ids)
+        masks = torch.cat(masks)
+        
         labels = torch.from_numpy(sub_df['toxicity'].values)
         # features = torch.stack((tokens['input_ids'], tokens['attention_mask']), dim=1)
         features = torch.stack((ids, masks), dim=1)
