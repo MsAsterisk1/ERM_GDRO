@@ -128,7 +128,7 @@ gdro_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses
 upweight_class = ERMLoss
 upweight_args = {'loss_fn': torch.nn.CrossEntropyLoss()}
 cris_class = CRISLoss
-cris_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': eta, 'num_subclasses': num_subclasses}
+cris_args = {'loss_fn': torch.nn.CrossEntropyLoss(), 'eta': 0, 'num_subclasses': num_subclasses}
 losses = {'erm': (erm_class, erm_args), 'gdro': (gdro_class, gdro_args), 'upweight': (upweight_class, upweight_args), 'cris': (cris_class, cris_args), 'rwcris': (cris_class, cris_args)}
 
 accuracies = {}

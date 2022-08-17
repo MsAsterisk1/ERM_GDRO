@@ -164,14 +164,15 @@ def train_epochs(epochs,
     if isinstance(loss_fn, CRISLoss):
         epochs *= 2
 
-        # True: use overall accuracy to evaluate model
-        # False: use worst sensitivity to evaluate model
-        val_mode = True
-        v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
+    # True: use overall accuracy to evaluate model
+    # False: use worst sensitivity to evaluate model
+    val_mode = True
+    v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
 
-        # First validation measurement is best so far
-        best_model = model.state_dict()
-        best_val = (sum(v) / len(v)) if val_mode else min(v)
+    # First validation measurement is best so far
+    best_model = model.state_dict()
+    best_val = (sum(v) / len(v)) if val_mode else min(v)
+    best_epoch = 0
 
     for epoch in tqdm(range(epochs)):
         if verbose:
@@ -214,16 +215,18 @@ def train_epochs(epochs,
         train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches,
               scheduler=scheduler, gradient_clip=gradient_clip)
 
-        if isinstance(loss_fn, CRISLoss):
-            v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, multiclass=multiclass)[1:]
-            if best_val < ((sum(v) / len(v)) if val_mode else min(v)):
-                best_model = model.state_dict()
-                best_val = (sum(v) / len(v)) if val_mode else min(v)
+        v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, multiclass=multiclass)[1:]
+        if best_val < ((sum(v) / len(v)) if val_mode else min(v)):
+            best_model = model.state_dict()
+            best_val = (sum(v) / len(v)) if val_mode else min(v)
+            best_epoch = epoch + 1
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses,
                                         vector_subclass=vector_subclass, verbose=verbose, multiclass=multiclass)
             accuracies.extend(epoch_accuracies)
+
+    print(f"Best epoch using cross-validation: {best_epoch}")
 
     if record:
         return accuracies
