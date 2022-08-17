@@ -100,7 +100,7 @@ for trial in tqdm(range(trials)):
     for _ in range(val_dataloader.batches_per_epoch()):
         X,y,c = next(val_dataloader)
 
-        model(X)
+        preds = model(X)
         img_features = activation['avgpool'].squeeze()
         features.extend(torch.unbind(img_features))
         pred_labels.extend(preds.int().tolist())
