@@ -5,19 +5,20 @@ import argparse
 from tqdm import tqdm
 
 import torch
-from torch.optim import SGD
+from torch.optim import SGD, AdamW
 import torch.nn as nn
 
-from utils.process_data_utils import  get_dataloaders, get_waterbirds_datasets
+from utils.process_data_utils import  get_dataloaders, get_waterbirds_datasets, get_CivilComments_Datasets
 from loss import ERMLoss, GDROLoss
 from train_eval import  train_epochs
-from models import TransferModel50
+from models import TransferModel50, BertClassifier
 
 
 from umap import UMAP
 from sklearn.metrics import silhouette_score
 
 parser = argparse.ArgumentParser()
+parser.add_argument('dataset')
 parser.add_argument('-f', '--file_name', default='features')
 parser.add_argument('-d', '--device', default='0' if torch.cuda.is_available() else 'cpu')
 parser.add_argument('-v', '--verbose', action='store_true')
@@ -35,23 +36,48 @@ else:
     torch.cuda.set_device(int(args.device))
     device = 'cuda'
 
-
-
-
-batch_size = (128, 256)
-eta = 0.01
-num_subclasses = 4
-num_labels = 4 if args.subclass_label else 2
-epochs = 131
-
 #For GDRO, we must reweight
 if args.loss_function == 'GDRO':
     args.reweight_train =True
 
-train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device, subclass_label=args.subclass_label)
+if args.dataset == 'waterbirds':
+
+    batch_size = (128, 256)
+    eta = 0.01
+    num_subclasses = 4
+    num_labels = 4 if args.subclass_label else 2
+    epochs = 131
+
+
+    model_class = TransferModel50
+
+    opt_class = SGD
+    opt_args = {'lr':0.0001, 'weight_decay':0.0001, 'momentum':0.9}
+
+    train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device, subclass_label=args.subclass_label)
+elif args.dataset == 'civilcomments':
+     batch_size = (16, 128)
+
+    # for gdro traon on labels x identity (identity or others)
+     num_subclasses = 4
+     num_labels = 4 if args.subclass_label else 2
+
+
+     # From WILDS
+     epochs = 2
+     eta = 0.01
+
+
+     model_class = BertClassifier
+     opt_class = AdamW
+     opt_args = {'lr': 0.00001, 'weight_decay': 0.01}
+
+     train_dataset, val_dataset, test_dataset = get_CivilComments_Datasets(device=device, subclass_label=args.subclass_label)
+
+
+
+
 train_dataloader, val_dataloader, test_dataloader = get_dataloaders((train_dataset, val_dataset, test_dataset), batch_size=batch_size, reweight_train=args.reweight_train)
-
-
 trials = 1
 
 if args.silhouette_score:
@@ -61,7 +87,7 @@ if args.silhouette_score:
 
 for trial in tqdm(range(trials)):
 
-    model = TransferModel50(device=device, num_labels=num_labels)
+    model = model_class(device=device, num_labels=num_labels)
 
 
     if args.loss_function == 'ERM':
@@ -69,7 +95,7 @@ for trial in tqdm(range(trials)):
     else:
         loss_fn = GDROLoss(model, nn.CrossEntropyLoss(), eta=eta, num_subclasses=num_subclasses)
 
-    optimizer = SGD(model.parameters(), lr=0.0001, weight_decay=0.0001, momentum=0.9)
+    optimizer = opt_class(model.parameters(), **opt_args)
 
     train_epochs(epochs, train_dataloader, val_dataloader, test_dataloader, model, loss_fn, optimizer, verbose=args.verbose, num_subclasses=num_subclasses)
 
@@ -79,7 +105,10 @@ for trial in tqdm(range(trials)):
             activation[name] = output.detach()
         return hook
 
-    model.model.avgpool.register_forward_hook(get_activation('avgpool'))
+    if args.dataset == 'waterbirds':
+        model.model.avgpool.register_forward_hook(get_activation('featurizer'))
+    else:
+        model.bert.distilbert.register_forward_hook(get_activation('featurizer'))
 
     model.eval()
 
@@ -91,7 +120,7 @@ for trial in tqdm(range(trials)):
         X,y,c = next(test_dataloader)
 
         preds = torch.argmax(model(X), 1)
-        img_features = activation['avgpool'].squeeze()
+        img_features = activation['featurizer'].squeeze()
         features.extend(torch.unbind(img_features))
         pred_labels.extend(preds.int().tolist())
         labels.extend(c.int().tolist())
