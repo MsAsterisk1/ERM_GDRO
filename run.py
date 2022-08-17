@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from loss import ERMLoss, GDROLoss, ERMGDROLoss, CRISLoss
+from loss import ERMLoss, GDROLoss, CRISLoss
 import models
 import utils.process_data_utils as utils
 from train_eval import run_trials
@@ -135,7 +135,7 @@ accuracies = {}
 
 # Number of epochs to use in the index of the results DataFrame (not necessarily the number actually trained)
 epoch_index_length = run_trials_args['epochs']
-if 'cris' in args.loss:
+if 'cris' in args.loss or 'rwcris' in args.loss:
     epoch_index_length *= 2
 
 for loss_fn in args.loss:
@@ -157,7 +157,7 @@ for loss_fn in args.loss:
     run_trials_args['test_dataloader'] = test_dataloader
 
     accuracies[loss_fn] = run_trials(**run_trials_args)
-    if (loss_fn != 'cris') and ('cris' in args.loss):
+    if (loss_fn not in ['cris', 'rwcris']) and ('cris' in args.loss or 'rwcris' in args.loss):
         # pad the length of non-cris loss functions as cris takes twice as long
         required_length = (epoch_index_length + 1) * len(subtypes)
         accuracies[loss_fn] = np.pad(accuracies[loss_fn], (0, (epoch_index_length + 1) * len(subtypes) - len(accuracies[loss_fn])), 'edge')
