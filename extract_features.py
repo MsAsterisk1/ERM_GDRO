@@ -96,9 +96,11 @@ for trial in tqdm(range(trials)):
     else:
         loss_fn = GDROLoss(model, nn.CrossEntropyLoss(), eta=eta, num_subclasses=num_subclasses)
 
-    optimizer = opt_class(model.parameters(), **opt_args)
+    
+    opt_args['params'] = model.parameters()
 
-    train_epochs(epochs, train_dataloader, val_dataloader, test_dataloader, model, loss_fn, optimizer, verbose=args.verbose, num_subclasses=num_subclasses, use_tqdm=use_tqdm)
+    train_epochs(epochs, train_dataloader, val_dataloader, test_dataloader, model, loss_fn, opt_class,
+                 opt_args, verbose=args.verbose, num_subclasses=num_subclasses, use_tqdm=use_tqdm)
 
     activation = {}
     def get_activation(name):
