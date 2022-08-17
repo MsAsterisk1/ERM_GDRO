@@ -85,7 +85,7 @@ def get_CivilComments_df(csv_file_path=url_CivilComments):
 
 def get_CivilComments_Datasets(CC_df=None, device='cpu', subclass_label=False):
     if CC_df is None:
-        CC_df = get_CivilComments_df()[:1000]
+        CC_df = get_CivilComments_df()
         # CC_df = CC_df[:100]
 
     tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased', use_fast=True)
