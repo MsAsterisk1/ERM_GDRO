@@ -102,7 +102,12 @@ for trial in tqdm(range(trials)):
     activation = {}
     def get_activation(name):
         def hook(model, input, output):
-            activation[name] = output.detach()
+            if args.dataset == 'waterbirds':
+                activation[name] = output.detach()
+            else:
+                activation[name] = output.last_hidden_state[:,0].detach()
+
+
         return hook
 
     if args.dataset == 'waterbirds':
@@ -130,7 +135,7 @@ for trial in tqdm(range(trials)):
         X,y,c = next(val_dataloader)
 
         preds = torch.argmax(model(X), 1)
-        img_features = activation['avgpool'].squeeze()
+        img_features = activation['featurizer'].squeeze()
         features.extend(torch.unbind(img_features))
         pred_labels.extend(preds.int().tolist())
         labels.extend(c.int().tolist())
