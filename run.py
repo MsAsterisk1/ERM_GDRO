@@ -35,7 +35,7 @@ if args.dataset == 'waterbirds':
     train_dataset, val_dataset, test_dataset = utils.get_waterbirds_datasets(device=device, subclass_label=args.multiclass)
 
     # From Distributionally Robust Neural Networks
-    batch_size = (128, 128)
+    batch_size = (128, 512)
     eta = 0.01
     num_subclasses = 4
 
@@ -44,7 +44,7 @@ if args.dataset == 'waterbirds':
         'model_args': {'device': device, 'freeze': False, 'num_labels': 4 if args.multiclass else 2},
         'epochs': 300,
         'optimizer_class': torch.optim.SGD,
-        'optimizer_args': {'lr': 0.001, 'weight_decay': 0.0001, 'momentum': 0.9},
+        'optimizer_args': {'lr': 0.0001, 'weight_decay': 0.0001},  # , 'momentum': 0.9},
         'num_subclasses': 4,
     }
 elif args.dataset == 'mnist':
@@ -144,6 +144,8 @@ for loss_fn in args.loss:
         split=loss_fn in ['cris', 'rwcris'],
         proportion=float(args.cris_prop)
     )
+
+    run_trials_args['epochs'] = 131 + 250
 
     run_trials_args['loss_class'], run_trials_args['loss_args'] = losses[loss_fn]
 
