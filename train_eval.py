@@ -2,11 +2,11 @@ import numpy as np
 
 import torch
 from torch import nn
-from loss import GDROLoss, CRISLoss, ERMLoss
+from loss import CRISLoss
 from tqdm import tqdm
 
 
-def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, scheduler=None, gradient_clip=None, use_tqdm=False):
+def train(dataloader, model, loss_fn, optimizer, verbose=False, scheduler=None, gradient_clip=None, use_tqdm=False):
     """
     Train the model for one epoch
     :param dataloader: The dataloader for the training data
@@ -14,7 +14,9 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, s
     :param loss_fn: The loss function to use for training
     :param optimizer: The optimizer to use for training
     :param verbose: Whether to print the average training loss of the epoch
-    :param sub_batches: Number of sub-batches to split a batch into, useful when the full batch can't fit in memory
+    :param scheduler: Learning rate scheduler to use
+    :param gradient_clip: Gradient clipping to use
+    :param use_tqdm: Whether to use tqdm progress bar when iterating through the data
     """
     model.train()
 
@@ -22,10 +24,9 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, s
 
     avg_loss = 0
 
-
     step_iter = tqdm(range(steps_per_epoch)) if use_tqdm else range(steps_per_epoch)
 
-    for i in step_iter:
+    for _ in step_iter:
         loss = loss_fn(next(dataloader))
         avg_loss += loss.item()
 
@@ -47,13 +48,16 @@ def train(dataloader, model, loss_fn, optimizer, verbose=False, sub_batches=1, s
         print("Average training loss:", avg_loss)
 
 
-def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=False, verbose=False, multiclass=False):
+def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=False, verbose=False, subclass_labels=False):
     """
     Evaluate the model's accuracy and subclass sensitivities
     :param dataloader: The dataloader for the validation/testing data
     :param model: The model to evaluate
     :param num_subclasses: The number of subclasses to evaluate on, this should be equal to the number of subclasses present in the data
+    :param vector_subclass: True if the subclass is represented by more than one number (such as CivilComments)
+    :param get_loss: Calculate the average cross-entropy loss as well as the accuracy and subclass sensitivities
     :param verbose: Whether to print the results
+    :param subclass_labels: Whether to evaluate on the subclass labels rather than the superclass labels
     :return: A tuple containing the overall accuracy and the sensitivity for each subclass
     """
     model.eval()
@@ -82,7 +86,7 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=
                 num_samples[subclass] += torch.sum(subclass_idx)
 
                 if torch.sum(subclass_idx) > 0:
-                    if multiclass:
+                    if subclass_labels:
                         # Assumes that the first half of the subtypes is class 0 and the second half is class 1
                         # Also assumes that unlike during training, y refers to the superclass labels
                         subgroup_correct[subclass] += (
@@ -92,13 +96,13 @@ def evaluate(dataloader, model, num_subclasses, vector_subclass=False, get_loss=
                         subgroup_correct[subclass] += (pred[subclass_idx].argmax(1) == y[subclass_idx]).type(
                             torch.float).sum().item()
 
-            if multiclass:
+            if subclass_labels:
                 accuracy += ((pred.argmax(1) >= num_subclasses // 2) == (y >= num_subclasses // 2)).type(torch.float).sum().item()
             else:
                 accuracy += (pred.argmax(1) == y).type(torch.float).sum().item()
             if get_loss:
                 # accumulate loss over entire epoch
-                loss += loss_fn(pred, c if multiclass else y)
+                loss += loss_fn(pred, c if subclass_labels else y)
 
         if get_loss:
             loss /= steps_per_epoch
@@ -136,8 +140,7 @@ def train_epochs(epochs,
                  validation=None,
                  num_subclasses=1,
                  gradient_clip=None,
-                 sub_batches=1,
-                 multiclass=False,
+                 subclass_labels=False,
                  use_tqdm=False):
     """
     Trains the model for a number of epochs and evaluates the model at each epoch
@@ -147,11 +150,18 @@ def train_epochs(epochs,
     :param test_dataloader: The dataloader for the testing data
     :param model: The model to train and evaluate
     :param loss_fn: The loss function to use for training
-    :param optimizer: The optimizer to use for training
-    :param scheduler: The learning rate scheduler, if any, to use for training
+    :param optimizer_class: Class of the optimizer to use for training
+    :param optimizer_args: kwargs to input for the optimizer class constructor
+    :param scheduler_class: The class of the learning rate scheduler, if any, to use
+    :param scheduler_args: kwargs for the scheduler
+    :param vector_subclass: True if the subclass is represented by more than one number (such as CivilComments)
     :param verbose: Whether to print the epoch number and the results for each epoch
     :param record: Whether to return the results from evaluate, generally this should be True
+    :param validation: If equal to 0, best overall validation accuracy is tracked and printed at the end. If another integer, best worst-group accuracy is used instead. If None, validation accuracy is not tracked
     :param num_subclasses: The number of subclasses to evaluate on
+    :param gradient_clip: Gradient clipping to use
+    :param subclass_labels: Whether to evaluate on the subclass labels rather than the superclass labels
+    :param use_tqdm: Whether to use tqdm progress bar
     :return: A list containing the overall accuracy and subclass sensitivities for each epoch, arranged 1-dimensionally ex. [accuracy_1, subclass1_1, subclass2_1, accuracy_2, subclass1_2, subclass2_2...]
     """
     optimizer = optimizer_class(**optimizer_args)
@@ -164,14 +174,14 @@ def train_epochs(epochs,
     if record:
         accuracies = list(
             evaluate(test_dataloader, model, num_subclasses=num_subclasses, vector_subclass=vector_subclass,
-                     verbose=verbose, multiclass=multiclass))
+                     verbose=verbose, subclass_labels=subclass_labels))
 
     if isinstance(loss_fn, CRISLoss):
         epochs *= 2
         validation = 0
 
     if validation is not None:
-        v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, multiclass=multiclass)[1:]
+        v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, subclass_labels=subclass_labels)[1:]
 
         # First validation measurement is best so far
         best_model = model.state_dict()
@@ -218,12 +228,12 @@ def train_epochs(epochs,
             best_val = 0
             validation = 1
 
-        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose, sub_batches=sub_batches,
+        train(train_dataloader, model, loss_fn, optimizer, verbose=verbose,
               scheduler=scheduler, gradient_clip=gradient_clip, use_tqdm=use_tqdm)
 
         if validation is not None:
             v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses,
-                         verbose=verbose, multiclass=multiclass)[1:]
+                         verbose=verbose, subclass_labels=subclass_labels)[1:]
 
             if best_val < (min(v) if validation else (sum(v) / len(v))):
                 best_model = model.state_dict()
@@ -232,7 +242,7 @@ def train_epochs(epochs,
 
         if record:
             epoch_accuracies = evaluate(test_dataloader, model, num_subclasses=num_subclasses,
-                                        vector_subclass=vector_subclass, verbose=verbose, multiclass=multiclass)
+                                        vector_subclass=vector_subclass, verbose=verbose, subclass_labels=subclass_labels)
             accuracies.extend(epoch_accuracies)
 
     if validation is not None:
@@ -262,9 +272,8 @@ def run_trials(num_trials,
                record=False,
                validation=None,
                gradient_clip=None,
-               sub_batches=1,
                vector_subclass=False,
-               multiclass=False):
+               subclass_labels=False):
     """
     Runs a number of trials
     :param num_trials: The number of trials to run
@@ -278,13 +287,16 @@ def run_trials(num_trials,
     :param loss_args: kwargs to input for the loss class constructor
     :param optimizer_class: Class of the optimizer to use for training
     :param optimizer_args: kwargs to input for the optimizer class constructor
-    :param device: The device to use (either cpu or cuda)
     :param num_subclasses: The number of subclasses to evaluate
     :param scheduler_class: The class of the learning rate scheduler, if any, to use
     :param scheduler_args: kwargs for the scheduler
     :param verbose: Whether to print trial number as well as epoch number and results per epoch
     :param record: Whether to record the results, this should almost always be True
-    :return: A list containing the results for each epoch for each trial, again arranged 1-dimensionally
+    :param validation: If equal to 0, best overall validation accuracy is tracked and printed at the end of each trial. If another integer, best worst-group accuracy is used instead. If None, validation accuracy is not tracked
+    :param gradient_clip Gradient clipping to use
+    :param vector_subclass True if the subclass is represented by more than one number (such as CivilComments)
+    :param subclass_labels: Whether to evaluate on the subclass labels rather than the superclass labels
+    :return: A list containing the results for each epoch for each trial, arranged 1-dimensionally
     """
     if scheduler_args is None:
         scheduler_args = {}
@@ -303,8 +315,6 @@ def run_trials(num_trials,
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-
-
         trial_results = train_epochs(epochs=epochs,
                                      train_dataloader=train_dataloader,
                                      val_dataloader=val_dataloader,
@@ -320,9 +330,8 @@ def run_trials(num_trials,
                                      validation=validation,
                                      num_subclasses=num_subclasses,
                                      gradient_clip=gradient_clip,
-                                     sub_batches=sub_batches,
                                      vector_subclass=vector_subclass,
-                                     multiclass=multiclass
+                                     subclass_labels=subclass_labels
                                      )
 
         if record:
