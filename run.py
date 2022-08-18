@@ -107,7 +107,7 @@ run_trials_args['num_trials'] = trials
 
 run_trials_args['verbose'] = args.verbose
 run_trials_args['record'] = True
-run_trials_args['validation'] = int(args.val)
+run_trials_args['validation'] = None if args.val is None else int(args.val)
 
 run_trials_args['subclass_labels'] = args.subclass_labels
 

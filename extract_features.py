@@ -56,7 +56,7 @@ if args.dataset == 'waterbirds':
     use_tqdm=False
     train_dataset, val_dataset, test_dataset = get_waterbirds_datasets(device=device, subclass_label=args.subclass_label)
 elif args.dataset == 'civilcomments':
-     batch_size = (16, 32)
+     batch_size = (16, 16)
 
     # for gdro traon on labels x identity (identity or others)
      num_subclasses = 4
