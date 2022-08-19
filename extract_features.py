@@ -108,7 +108,7 @@ for trial in tqdm(range(trials)):
             if args.dataset == 'waterbirds':
                 activation[name] = output.detach()
             else:
-                activation[name] = output.last_hidden_state[:,0].detach()
+                activation[name] = output.last_hidden_state[:,0].detach().cpu()
 
 
         return hook
@@ -134,7 +134,8 @@ for trial in tqdm(range(trials)):
 
         if args.dataset == 'civilcomments':
             c = torch.sum(c, dim=1) == 0
-
+            c = y + 2*c
+            
         labels.extend(c.int().tolist())
 
 
@@ -149,6 +150,7 @@ for trial in tqdm(range(trials)):
         if args.dataset == 'civilcomments':
             c = torch.sum(c, dim=1) == 0
             c = y + 2*c
+
         labels.extend(c.int().tolist())
 
     cols = []
