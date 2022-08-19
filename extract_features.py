@@ -134,7 +134,8 @@ for trial in tqdm(range(trials)):
 
         if args.dataset == 'civilcomments':
             c = torch.sum(c, dim=1) == 0
-
+            c = y + 2*c
+            
         labels.extend(c.int().tolist())
 
 
@@ -149,6 +150,7 @@ for trial in tqdm(range(trials)):
         if args.dataset == 'civilcomments':
             c = torch.sum(c, dim=1) == 0
             c = y + 2*c
+
         labels.extend(c.int().tolist())
 
     cols = []
