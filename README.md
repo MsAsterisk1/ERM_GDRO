@@ -1,8 +1,10 @@
 # ERM_GDRO
-Fine Control of the Trade-off Between ERM and gDRO
+An Analysis of Generated Feature Representations under Different Loss Regimes
 
-Project Description:
+Elias Furst & Thomas Zeng
 
-The trade-off in accuracy between ERM and gDRO is well known, with ERM tending to perform better overall while gDRO improves on worst-group performance. Though the trade-off is commonly known, there exist few tools to give intuitive, direct, and fine-grained control over it. This project presents a simple linear combination of ERM and gDRO that provides such a tool.
+##Project Description
 
-Code adapted from https://github.com/facebookresearch/DomainBed
+This project attempts to analyze the features generated when models are trained using different loss functions. This is done with the hopes of discovering a method to create more robust, i.e. seperable, features and thus more robust models.
+
+Dataloader code adapted from https://github.com/facebookresearch/DomainBed
