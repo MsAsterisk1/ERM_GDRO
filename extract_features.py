@@ -108,7 +108,7 @@ for trial in tqdm(range(trials)):
             if args.dataset == 'waterbirds':
                 activation[name] = output.detach()
             else:
-                activation[name] = output.last_hidden_state[:,0].detach()
+                activation[name] = output.last_hidden_state[:,0].detach().cpu()
 
 
         return hook
