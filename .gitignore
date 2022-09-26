@@ -137,3 +137,6 @@ dmypy.json
 
 # ignore csv in root
 /*.csv
+
+**/.DS_Store
+
