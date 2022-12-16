@@ -184,7 +184,7 @@ def train_epochs(epochs,
         v = evaluate(val_dataloader, model, vector_subclass=vector_subclass, num_subclasses=num_subclasses, verbose=verbose, subclass_labels=subclass_labels)[1:]
 
         # First validation measurement is best so far
-        best_model = model.state_dict()
+        best_model = model.state_dict().copy()
         # 0: use overall accuracy to evaluate model
         # not 0: use worst sensitivity to evaluate model
         best_val = min(v) if validation else (sum(v) / len(v))
@@ -236,7 +236,7 @@ def train_epochs(epochs,
                          verbose=verbose, subclass_labels=subclass_labels)[1:]
 
             if best_val < (min(v) if validation else (sum(v) / len(v))):
-                best_model = model.state_dict()
+                best_model = model.state_dict().copy()
                 best_val = min(v) if validation else (sum(v) / len(v))
                 best_epoch = epoch + 1
 
